@@ -1,38 +1,42 @@
-# Vynora Cloud: Supabase einrichten
+# Vynora + Supabase: Online-Setup
 
-**Stand (8. November 2026):** Der Web-Code und die SQL-Migration liegen auf GitHub. **Die Migration wurde noch nicht auf dein Supabase-Projekt ausgeführt.** Die ChatGPT-Supabase-Verbindung kann das Projekt aus deinem Screenshot derzeit nicht abrufen (fehlende Berechtigung). Bitte verbinde die Supabase-App in ChatGPT mit dem Konto/Workspace, das bzw. der das Projekt `vynora` enthält.
+## Aktueller Stand (8. November 2026)
 
-## Schritt 1 – Supabase verbinden
+Das Supabase-Projekt `vynora` ist über ChatGPT verbunden. Die Migrationen für private Nachrichten, Freunde, Server, Textkanäle und Blockierregeln sind auf diesem Projekt **erfolgreich ausgeführt**. Die entsprechenden SQL-Dateien stehen im Verzeichnis `supabase/migrations/`. Alle 10 Anwendungstabellen haben Row Level Security aktiviert.
 
-Öffne ChatGPT → Einstellungen → Plugins → Supabase. Prüfe, ob die Verbindung zum gleichen Supabase-Konto gehört wie dein Vynora-Projekt, und aktualisiere ggf. die Verbindung. Du brauchst **kein zweites Projekt** anzulegen. Die Anzeige "GitHub: No repository connected" im Supabase-Dashboard blockiert die Messenger-Funktion nicht.
+Die öffentliche Browserkonfiguration in `supabase-config.js` ist mit der Vynora-Projekt-URL und einem **Publishable Key** verbunden. Das ist kein geheimer Service-Role-Schlüssel.
 
-## Schritt 2 – SQL anwenden
+## App öffnen
 
-Prüfe die Migration unter [supabase/migrations/202611080001_vynora_private_messaging.sql](supabase/migrations/202611080001_vynora_private_messaging.sql). Führe sie erst auf dem gewünschten neuen Projekt aus (direkt nach Verbindungsfreigabe per ChatGPT-Supabase oder im SQL Editor). Sie erstellt `profiles`, `conversations`, `conversation_members`, `messages`, einen Auth-Trigger, sichere DM-RPCs, Zugriffspolicies und Realtime-Publication.
+- Vynora: https://silasnetwin.github.io/vynora/
+- Ältere Offline-Demo: https://silasnetwin.github.io/vynora/demo.html
 
-**Sicherheit:** Row Level Security (RLS) ist für alle öffentlichen Tabellen aktiviert. Nachrichten sind nur für Chatmitglieder lesbar. Der Prototyp hat noch keine Freundschaftsanfragen, Spam-Abwehr, Blockier-/Melde-Funktion oder Ende-zu-Ende-Verschlüsselung.
+**GitHub Pages veröffentlicht Dateien.** Ein erfolgreiches Deployment allein beweist noch nicht, dass Registrierung und Live-Chat im Browser-Endtest funktionieren.
 
-## Schritt 3 – Browser-Konfiguration
+## Einmalig in Supabase prüfen
 
-1. Supabase-Dashboard → Projekt `vynora` → Project Settings → API Keys.
-2. Kopiere **Project URL** und den **Publishable Key** (beginnt üblicherweise mit `sb_publishable_`) in `supabase-config.js`.
-3. Veröffentliche nur diesen öffentlichen Schlüssel. **Niemals** die Secret-/Service-Role-Keys, Datenbankpasswörter oder Tokens auf GitHub speichern.
-4. Authentication → URL Configuration: Setze Site URL und erlaubte Redirect URL z. B. `https://silasnetwin.github.io/vynora/cloud.html`. Bei der späteren eigenen Domain dort auch die echte Vynora-URL freigeben.
-5. E-Mail/Passwort-Login muss unter Authentication → Providers aktiviert sein. Bei aktivierter Mailbestätigung müssen Testaccounts die E-Mail bestätigen.
+Öffne [Supabase Authentication URL Configuration](https://supabase.com/dashboard/project/nassqnkmuzuuuylelreh/auth/url-configuration) und stelle sicher, dass die Browser-App als erlaubtes Redirect-Ziel eingetragen ist:
 
-## Schritt 4 – Test mit zwei Konten
+`https://silasnetwin.github.io/vynora/**`
 
-1. Öffne `cloud.html` über GitHub Pages / eine HTTPS-Domain.
-2. Erstelle Account A; bestätige die E-Mail falls nötig.
-3. Wähle im Seitenpanel einen leicht auffindbaren Nutzernamen (Kleinbuchstaben, Zahlen, `_` und `.`, 3–32 Zeichen).
-4. Erstelle Account B in einem zweiten Browser / Privatfenster und gib dort einen anderen Benutzernamen ein.
-5. Suche auf Account A nach Account B, beginne einen Chat und sende eine Nachricht.
-6. Prüfe, ob Account B die Nachricht sieht, antworten kann und ob andere Accounts die Nachricht *nicht* lesen können.
+Den Site URL kannst du vorerst auf `https://silasnetwin.github.io/vynora/` setzen. Später auch die eigene Domain `app.vynora.me` ergänzen. Verifiziere im Supabase Dashboard, dass E-Mail/Passwort-Login unter Authentication → Providers aktiviert ist. Falls E-Mail-Bestätigung aktiv ist, muss jeder Testaccount seine E-Mail bestätigen.
 
-Die Cloud-App speichert echte Nachrichten in Supabase PostgreSQL, nicht in SQLite. GitHub Pages hostet nur HTML, CSS und JavaScript. Für Realtime ist eine Postgres-Changes-Subscription vorgesehen; bei Verbindungsproblemen fragt die App im Abstand von zehn Sekunden ab.
+## Realer Test
 
-## Grenzen
+1. Registriere einen Testaccount A über die Vynora-Seite.
+2. Registriere Account B über einen privaten Browser / zweiten Browser.
+3. Lege für beide unter ⚙ ein eindeutiges `username` fest.
+4. Suche B über „Freund hinzufügen“, sende eine Anfrage und nimm sie in B an.
+5. Starte einen DM, sende Nachrichten, prüfe die Darstellung in beiden Browsern.
+6. Erstelle mit A einen Server, kopiere mit ⤴ den Einladungscode, tritt mit B über ↪ bei, sende Kanalnachrichten.
+7. Prüfe, dass ein dritter Nutzer ohne Einladung Servernachrichten nicht lesen kann und dass Blockieren DM-Senden verhindert.
 
-Keine Server- oder Sprachkanäle in der Cloud-Version. Es handelt sich um ein Experiment, das vor einem breiteren öffentlichen Start weitere Privacy- und Abuse-Sicherungen sowie echte Browser-/Auth-Tests braucht.
+## Sicherheit und Einschränkungen
 
-Mehr Infos: [README.md](README.md).
+- Nachrichten sind **nicht Ende-zu-Ende-verschlüsselt**.
+- Vor öffentlicher Nutzung fehlen unter anderem Anti-Spam-Rate-Limits, Moderation, Reporting und Blockier-UI zum Entblocken.
+- Funktionen mit `SECURITY DEFINER` wurden mit Auth-/Berechtigungsprüfungen implementiert. Supabase Security Advisor meldet für einige absichtlich erreichbare authentifizierte RPC-Funktionen Warnungen. Diese müssen vor einem öffentlichen Launch nochmals geprüft werden.
+- Kein Sprach-/Videochat und noch keine vollständige Rechteverwaltung.
+- Keine Secret Keys, Service-Role-Keys oder Passwörter in GitHub eintragen.
+
+Weitere Details in [README.md](README.md).
