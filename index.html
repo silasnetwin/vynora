@@ -46,6 +46,7 @@ input,textarea{background:#202127;color:inherit;border:1px solid #33353e;border-
 .toast{position:absolute;bottom:79px;right:24px;background:#343749;border:1px solid #535779;padding:12px 17px;max-width:400px;border-radius:8px;box-shadow:0 12px 30px #0008;z-index:99}
 @media(max-width:1120px){.right{display:none}}@media(max-width:700px){.rail{width:54px;flex-basis:54px;padding:10px 2px}.railButton{width:39px;min-height:39px;font-size:18px}.side{width:170px;flex-basis:170px}.top{gap:4px;padding:0 8px}.top strong{font-size:13px}.tab{padding:6px;font-size:11px}.friendsArea{padding:10px}.msgs{padding:8px}.composer{margin:8px}.navItem{padding:8px 6px;font-size:12px}.sectionLabel{padding-left:6px;font-size:10px}}
 </style>
+<link rel="stylesheet" href="./assets/vynora-discordlike.css?v=3">
 </head>
 <body>
 <div id="authView">
@@ -59,6 +60,10 @@ input,textarea{background:#202127;color:inherit;border:1px solid #33353e;border-
       <button class="primary" type="submit">Anmelden</button>
       <button id="register" class="secondary" type="button">Neues Konto registrieren</button>
       <div id="authStatus" class="hint" role="status"></div>
+       <div style="display:flex;justify-content:space-between;gap:12px;margin-top:-2px">
+         <button type="button" class="hint" id="resendConfirm" style="padding:4px;text-decoration:underline;text-align:left">Bestätigungs-E-Mail erneut senden</button>
+         <button type="button" class="hint" id="forgotPassword" style="padding:4px;text-decoration:underline;text-align:right">Passwort vergessen?</button>
+       </div>
     </form>
     <p class="hint">Eigener unabhängiger Messenger im Aufbau. Verwende für Tests keine vertraulichen Informationen.</p>
   </div>
@@ -66,10 +71,10 @@ input,textarea{background:#202127;color:inherit;border:1px solid #33353e;border-
 <div id="app" class="hidden">
   <nav class="rail" id="serversRail" aria-label="Servernavigation"></nav>
   <aside class="side">
-    <div class="sideTop"><button class="searchTop" id="quickSearch">Freunde oder Kanal suchen ⌕</button></div>
+    <div class="sideTop"><button class="searchTop" id="quickSearch"><span>Unterhaltung suchen</span><span class="key">Strg K</span></button></div>
     <div class="sideScroll">
-      <button class="navItem active" id="navFriends">♟ &nbsp; Freunde</button>
-      <button class="navItem" id="navRequests">✉ &nbsp; Anfragen <span id="requestCount"></span></button>
+      <button class="navItem active" id="navFriends"><span id="friendsNavIcon"></span> Freunde</button>
+      <button class="navItem" id="navRequests"><span id="requestsNavIcon"></span> Freundschaftsanfragen <span id="requestCount" style="margin-left:auto;color:#fff"></span></button>
       <div class="sectionLabel"><span>DIREKTNACHRICHTEN</span><button id="addFriendSide" aria-label="Freund hinzufügen">＋</button></div>
       <div id="dmNav"></div>
       <div class="sectionLabel"><span id="serverNavTitle">KANÄLE</span><div><button id="inviteServer" title="Einladungscode teilen">⤴</button><button id="addChannel" title="Kanal erstellen">＋</button></div></div>
@@ -77,20 +82,26 @@ input,textarea{background:#202127;color:inherit;border:1px solid #33353e;border-
     </div>
     <div class="account">
       <span class="avatar" id="selfAvatar">V</span><div class="accountInfo"><b id="selfDisplay">Vynora</b><small id="selfUsername">● Online</small></div>
-      <button id="settingsButton" title="Einstellungen">⚙</button><button id="logout" title="Abmelden">⇥</button>
+      <button id="settingsButton" title="Einstellungen" aria-label="Einstellungen">⚙</button><button id="logout" title="Abmelden" aria-label="Abmelden">⇥</button>
     </div>
   </aside>
   <main class="work">
-    <header class="top"><strong id="headerTitle">♟ Freunde</strong><span class="sep"></span><div id="tabs">
+    <header class="top"><strong id="headerTitle">Freunde</strong><span class="sep" id="headerSeparator"></span><div id="tabs">
       <button class="tab" data-tab="online" title="Online-Status folgt später">Online</button>
       <button class="tab active" data-tab="all">Alle</button>
       <button class="tab" data-tab="pending">Ausstehend</button>
       <button class="primary" style="padding:7px 12px" id="addFriendTop">Freund hinzufügen</button>
-    </div></header>
+    </div>
+      <div class="topTools">
+        <button type="button" id="membersToggle" title="Mitglieder/Profil anzeigen" aria-label="Mitglieder/Profil anzeigen"><span id="membersIcon"></span></button>
+        <button type="button" id="inviteAction" title="Einladungsoptionen" aria-label="Einladen"><span id="inviteIcon"></span></button>
+        <input class="quickFind" id="topSearch" type="search" placeholder="Suchen" aria-label="Nachrichten durchsuchen" maxlength="120">
+      </div>
+    </header>
     <div class="body">
       <div class="content">
         <section class="view" id="friendsView"><div class="friendsArea">
-          <input class="filter" id="friendFilter" placeholder="Suchen" aria-label="Freunde suchen">
+          <div class="friendSearchWrap"><span class="searchMag" id="filterMag"></span><input class="filter" id="friendFilter" placeholder="Suchen" aria-label="Freunde suchen"></div>
           <div class="listHead" id="friendHeading">ALLE FREUNDE</div><div id="friendRows"></div>
         </div></section>
         <section class="view hidden" id="requestsView"><div class="friendsArea">
@@ -101,12 +112,24 @@ input,textarea{background:#202127;color:inherit;border:1px solid #33353e;border-
         </div></section>
         <section class="view hidden" id="chatView">
           <div class="msgs" id="messages"></div>
-          <form class="composer" id="composerForm"><input id="composerInput" maxlength="2000" autocomplete="off" placeholder="Nachricht schreiben..." aria-label="Nachricht schreiben"><button class="primary" id="sendButton">Senden</button></form>
+          <form class="composer" id="composerForm">
+            <button id="composerEmoji" type="button" class="composeTool" title="Emoji einfügen" aria-label="Emoji einfügen">☺</button>
+            <input id="composerInput" maxlength="2000" autocomplete="off" placeholder="Nachricht schreiben..." aria-label="Nachricht schreiben">
+            <button class="primary" id="sendButton" type="submit">Senden</button>
+          </form>
         </section>
         <section class="view hidden" id="settingsView"><div class="friendsArea profilePanel" style="max-width:560px">
-          <h2>Mein Profil</h2><p class="muted">Passe deinen öffentlichen Anzeigenamen und deinen Benutzernamen an.</p>
+          <h2>Mein Konto</h2><p class="settingsHint">Passe an, wie andere dich in Vynora sehen.</p>
           <form id="profileForm"><label>Anzeigename<input id="displayNameInput" maxlength="40" required></label>
             <label>Benutzername (3–32 Zeichen, a–z, 0–9, _ und .)<input id="usernameInput" maxlength="32" minlength="3" required></label>
+            <label>Mein Status
+              <select id="presenceSelect" style="display:block;background:#15161b;color:#f6f6fa;border:1px solid #444650;border-radius:7px;padding:11px;width:100%;margin-top:8px">
+                <option value="online">🟢 Online</option>
+                <option value="away">🌙 Abwesend</option>
+                <option value="busy">⛔ Nicht stören</option>
+                <option value="invisible">⚪ Unsichtbar</option>
+              </select>
+            </label>
             <button class="primary" style="margin-top:18px">Profil speichern</button>
           </form><p class="hint">Vynora nutzt Supabase für Anmeldung und Nachrichtenspeicherung. Nachrichten sind derzeit nicht Ende-zu-Ende-verschlüsselt.</p>
         </div></section>
@@ -115,6 +138,16 @@ input,textarea{background:#202127;color:inherit;border:1px solid #33353e;border-
     </div>
   </main>
   <div id="toast" class="toast hidden" role="status"></div>
+  <div id="modalRoot" class="hidden modalBackdrop" role="presentation">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h2 id="modalTitle">Vynora</h2><p id="modalDescription"></p>
+      <form id="modalForm">
+        <div id="modalInputWrap"><input id="modalInput" autocomplete="off" maxlength="120" aria-label="Eingabe" style="width:100%"></div>
+        <div id="modalChoices" class="hidden" style="margin-top:14px;display:flex;flex-wrap:wrap;gap:10px"></div>
+        <div class="modalFooter"><button type="button" class="secondary" id="modalCancel">Abbrechen</button><button type="submit" class="primary" id="modalSubmit">Weiter</button></div>
+      </form>
+    </div>
+  </div>
 </div>
 <script type="module">
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.57.0';
