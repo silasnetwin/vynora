@@ -131,7 +131,10 @@ input,textarea{background:#202127;color:inherit;border:1px solid #33353e;border-
               </select>
             </label>
             <button class="primary" style="margin-top:18px">Profil speichern</button>
-          </form><p class="hint">Vynora nutzt Supabase für Anmeldung und Nachrichtenspeicherung. Nachrichten sind derzeit nicht Ende-zu-Ende-verschlüsselt.</p>
+          </form><div style="margin:22px 0;border-top:1px solid #353640;padding-top:18px">
+            <h3>Blockierte Nutzer</h3><p class="hint">Konten, die du blockierst, können dir keine neuen Nachrichten senden.</p>
+            <div id="blockedUsers"></div><button type="button" class="secondary" id="refreshBlocks">Blockierte Nutzer anzeigen</button>
+          </div><p class="hint">Vynora nutzt Supabase für Anmeldung und Nachrichtenspeicherung. Nachrichten sind derzeit nicht Ende-zu-Ende-verschlüsselt.</p>
         </div></section>
       </div>
       <aside class="right"><h3 id="rightHeading">Jetzt aktiv</h3><div class="activeCard" id="rightText">Hier ist es noch ruhig …</div></aside>
@@ -184,7 +187,7 @@ async function refreshPresence(){if(!S.user||!S.friends.length)return;const {dat
 function openDialog(title,description,opts={}){return new Promise(resolve=>{
  const root=el('modalRoot'),input=el('modalInput'),form=el('modalForm'),choices=el('modalChoices'),wrap=el('modalInputWrap');
  el('modalTitle').textContent=title;el('modalDescription').textContent=description||'';input.value=opts.defaultValue||'';input.placeholder=opts.placeholder||'';
- input.maxLength=opts.maxLength||120;el('modalSubmit').textContent=opts.submitLabel||'Bestätigen';
+ input.maxLength=opts.maxLength||120;input.type=opts.inputType||'text';el('modalSubmit').textContent=opts.submitLabel||'Bestätigen';
  choices.replaceChildren();const hasChoices=Array.isArray(opts.choices);
  toggle('modalChoices',hasChoices);toggle('modalInputWrap',!hasChoices);toggle('modalSubmit',!hasChoices);
  const close=value=>{toggle('modalRoot',false);form.onsubmit=null;el('modalCancel').onclick=null;root.onmousedown=null;document.removeEventListener('keydown',esc);resolve(value)};
@@ -234,10 +237,24 @@ function renderFriends(){
 }
 function renderRequests(){const rows=el('requestsRows');rows.replaceChildren();for(const r of S.requests.filter(r=>r.status==='pending')){const incoming=r.receiver_id===S.user.id;const id=incoming?r.sender_id:r.receiver_id;const line=text('div','','friendRow');const info=text('div','','grow');info.append(text('b',pName(id)),text('small',(incoming?'Eingehend':'Gesendet')+' · @'+pUser(id)));line.append(makeAvatar(pName(id)),info);if(incoming){for(const [status,label] of [['accepted','Annehmen'],['declined','Ablehnen']]){const b=text('button',label,'pill');b.onclick=()=>changeRequest(r,status);line.append(b)}}rows.append(line)}if(!rows.childElementCount)rows.append(text('p','Keine offenen Anfragen','muted'))}
 async function changeRequest(r,status){try{const {error}=await client.from('friend_requests').update({status}).eq('id',r.id).eq('receiver_id',S.user.id);if(error)throw error;await loadFriends();notify(status==='accepted'?'Freundschaft bestätigt':'Anfrage abgelehnt')}catch(e){explain(e)}}
+async function loadBlocks(){
+ if(!S.user)return;const out=el('blockedUsers');out.replaceChildren();
+ const {data,error}=await client.from('user_blocks').select('blocked_id').eq('blocker_id',S.user.id);
+ if(error)throw error;await readProfiles((data||[]).map(x=>x.blocked_id));
+ for(const row of data||[]){
+  const item=text('div','','friendRow'),info=text('div',pName(row.blocked_id),'grow');
+  const b=text('button','Entblocken','pill');b.style.width='auto';b.style.borderRadius='6px';b.onclick=async()=>{
+    const {error:e}=await client.from('user_blocks').delete().eq('blocker_id',S.user.id).eq('blocked_id',row.blocked_id);
+    if(e)explain(e);else{notify('Blockierung aufgehoben');await loadBlocks()}
+  };
+  item.append(makeAvatar(pName(row.blocked_id)),info,b);out.append(item)
+ }
+ if(!out.childElementCount)out.append(text('p','Du hast niemanden blockiert.','muted'))
+}
 async function blockUser(id){if(!confirm('Diesen Kontakt blockieren? Danach kannst du ihm keine Nachrichten mehr senden.'))return;try{const {error}=await client.from('user_blocks').insert({blocker_id:S.user.id,blocked_id:id});if(error)throw error;await loadFriends();notify('Kontakt blockiert.')}catch(e){explain(e)}}
 function showFriends(){leaveChat().catch(explain);S.server=null;S.chat=null;view('friends');setTitle('♟ Freunde');renderFriends();renderSidebar();renderRail()}
 function showRequests(){leaveChat().catch(explain);S.server=null;S.chat=null;view('requests');setTitle('✉ Freundschaftsanfragen');renderRequests();renderSidebar();renderRail()}
-function showSettings(){leaveChat().catch(explain);S.chat=null;view('settings');setTitle('⚙ Benutzereinstellungen');renderSidebar()}
+function showSettings(){leaveChat().catch(explain);S.chat=null;view('settings');setTitle('⚙ Benutzereinstellungen');renderSidebar();loadBlocks().catch(explain)}
 function renderSidebar(){
  const dm=el('dmNav');dm.replaceChildren();
  for(const d of S.dms){
@@ -296,10 +313,13 @@ async function renderRight(){
  }
  title.textContent='Vynora';box.className='activeCard';box.append(text('strong','Dein Messenger'),text('p','Freunde hinzufügen, chatten und Communities erstellen.'))
 }
-function showUserProfile(id){
+async function showUserProfile(id){
  if(!id)return;const p=S.profiles.get(id);
  const status=online(id)?'🟢 Online':'⚪ Offline';
- openDialog(p?.display_name||'Profil','@'+(p?.username||short(id))+' · '+status, {submitLabel:'Schließen',choices:['Schließen']}).catch(explain)
+ const buttons=id===S.user?.id?['Schließen']:S.friends.includes(id)?['Nachricht','Blockieren','Schließen']:['Schließen'];
+ const choice=await openDialog(p?.display_name||'Profil','@'+(p?.username||short(id))+' · '+status,{choices:buttons});
+ if(choice==='Nachricht')await openDm(id);
+ if(choice==='Blockieren')await blockUser(id)
 }
 function applySearch(){
  const q=el('topSearch').value.trim().toLocaleLowerCase();
@@ -425,6 +445,7 @@ el('logout').onclick=()=>client.auth.signOut();
 el('navFriends').onclick=showFriends;el('navRequests').onclick=showRequests;
 el('addFriendTop').onclick=showRequests;el('addFriendSide').onclick=showRequests;
 el('settingsButton').onclick=showSettings;
+el('refreshBlocks').onclick=()=>loadBlocks().catch(explain);
 el('quickSearch').onclick=()=>{showRequests();el('searchUser').focus()};
 el('topSearch').oninput=applySearch;
 el('membersToggle').onclick=()=>{S.panelHidden=!S.panelHidden;document.querySelector('.right').classList.toggle('hidden',S.panelHidden);el('membersToggle').classList.toggle('is-active',!S.panelHidden)};
@@ -447,7 +468,15 @@ el('friendFilter').oninput=renderFriends;
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{if(b.dataset.tab==='pending')showRequests();else tab(b.dataset.tab)});
 el('searchUserForm').onsubmit=async e=>{e.preventDefault();const q=el('searchUser').value.trim().toLowerCase();const out=el('searchResults');out.replaceChildren();try{const {data,error}=await client.from('profiles').select('id,username,display_name').ilike('username',q+'%').limit(12);if(error)throw error;for(const p of(data||[]).filter(x=>x.id!==S.user.id)){S.profiles.set(p.id,p);const row=text('div','','friendRow');const info=text('div','','grow');info.append(text('b',p.display_name),text('small','@'+p.username));const btn=text('button','Anfrage senden','primary');btn.onclick=async()=>{try{const {error:e2}=await client.from('friend_requests').insert({sender_id:S.user.id,receiver_id:p.id});if(e2)throw e2;notify('Anfrage gesendet');await loadFriends()}catch(e3){explain(e3)}};row.append(makeAvatar(p.display_name),info,btn);out.append(row)}if(!out.childElementCount)out.append(text('p','Keine Nutzer gefunden','muted'))}catch(e2){explain(e2)}};
 el('profileForm').onsubmit=async e=>{e.preventDefault();const display_name=el('displayNameInput').value.trim(),username=el('usernameInput').value.trim().toLowerCase();if(!display_name||!(/^[a-z0-9_.]{3,32}$/).test(username)){notify('Ungültiger Name oder Benutzername');return}try{const {error}=await client.from('profiles').update({display_name,username,presence_status:el('presenceSelect').value}).eq('id',S.user.id);if(error)throw error;S.profiles.delete(S.user.id);await loadProfile();notify('Profil gespeichert')}catch(e2){explain(e2)}};
-client.auth.onAuthStateChange((_event,s)=>queueMicrotask(()=>session(s?.user||null)));
+client.auth.onAuthStateChange((event,s)=>queueMicrotask(async()=>{
+ await session(s?.user||null);
+ if(event==='PASSWORD_RECOVERY'){
+  const password=await openDialog('Neues Passwort vergeben','Wähle ein neues Passwort mit mindestens 8 Zeichen.',{placeholder:'Neues Passwort',submitLabel:'Passwort speichern',maxLength:128,inputType:'password'});
+  if(!password)return;if(password.length<8){notify('Das Passwort muss mindestens 8 Zeichen lang sein.');return}
+  const {error}=await client.auth.updateUser({password});
+  if(error)explain(error);else notify('Dein Passwort wurde geändert.')
+ }
+}));
 client.auth.getUser().then(({data})=>session(data?.user||null)).catch(explain);
 </script>
 </body></html>
