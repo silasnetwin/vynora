@@ -72,7 +72,7 @@ input,textarea{background:#202127;color:inherit;border:1px solid #33353e;border-
       <button class="navItem" id="navRequests">✉ &nbsp; Anfragen <span id="requestCount"></span></button>
       <div class="sectionLabel"><span>DIREKTNACHRICHTEN</span><button id="addFriendSide" aria-label="Freund hinzufügen">＋</button></div>
       <div id="dmNav"></div>
-      <div class="sectionLabel"><span id="serverNavTitle">KANÄLE</span><button id="addChannel" title="Kanal erstellen">＋</button></div>
+      <div class="sectionLabel"><span id="serverNavTitle">KANÄLE</span><div><button id="inviteServer" title="Einladungscode teilen">⤴</button><button id="addChannel" title="Kanal erstellen">＋</button></div></div>
       <div id="channelNav"></div>
     </div>
     <div class="account">
@@ -157,9 +157,9 @@ function renderFriends(){
 function renderRequests(){const rows=el('requestsRows');rows.replaceChildren();for(const r of S.requests.filter(r=>r.status==='pending')){const incoming=r.receiver_id===S.user.id;const id=incoming?r.sender_id:r.receiver_id;const line=text('div','','friendRow');const info=text('div','','grow');info.append(text('b',pName(id)),text('small',(incoming?'Eingehend':'Gesendet')+' · @'+pUser(id)));line.append(makeAvatar(pName(id)),info);if(incoming){for(const [status,label] of [['accepted','Annehmen'],['declined','Ablehnen']]){const b=text('button',label,'pill');b.onclick=()=>changeRequest(r,status);line.append(b)}}rows.append(line)}if(!rows.childElementCount)rows.append(text('p','Keine offenen Anfragen','muted'))}
 async function changeRequest(r,status){try{const {error}=await client.from('friend_requests').update({status}).eq('id',r.id).eq('receiver_id',S.user.id);if(error)throw error;await loadFriends();notify(status==='accepted'?'Freundschaft bestätigt':'Anfrage abgelehnt')}catch(e){explain(e)}}
 async function blockUser(id){if(!confirm('Diesen Kontakt blockieren? Danach kannst du ihm keine Nachrichten mehr senden.'))return;try{const {error}=await client.from('user_blocks').insert({blocker_id:S.user.id,blocked_id:id});if(error)throw error;await loadFriends();notify('Kontakt blockiert.')}catch(e){explain(e)}}
-function showFriends(){S.server=null;S.chat=null;view('friends');setTitle('♟ Freunde');renderFriends();renderSidebar();renderRail()}
-function showRequests(){S.server=null;S.chat=null;view('requests');setTitle('✉ Freundschaftsanfragen');renderRequests();renderSidebar();renderRail()}
-function showSettings(){S.chat=null;view('settings');setTitle('⚙ Benutzereinstellungen');renderSidebar()}
+function showFriends(){leaveChat().catch(explain);S.server=null;S.chat=null;view('friends');setTitle('♟ Freunde');renderFriends();renderSidebar();renderRail()}
+function showRequests(){leaveChat().catch(explain);S.server=null;S.chat=null;view('requests');setTitle('✉ Freundschaftsanfragen');renderRequests();renderSidebar();renderRail()}
+function showSettings(){leaveChat().catch(explain);S.chat=null;view('settings');setTitle('⚙ Benutzereinstellungen');renderSidebar()}
 function renderSidebar(){
   const dm=el('dmNav');dm.replaceChildren();
   for(const d of S.dms){const id=d.otherId;const b=navButton('●  '+pName(id),()=>openDm(id,d.id),S.chat?.type==='dm'&&S.chat.id===d.id);dm.append(b)}
@@ -210,6 +210,12 @@ el('addFriendTop').onclick=showRequests;el('addFriendSide').onclick=showRequests
 el('settingsButton').onclick=showSettings;
 el('quickSearch').onclick=()=>{showRequests();el('searchUser').focus()};
 el('addChannel').onclick=createChannel;
+el('inviteServer').onclick=async()=>{if(!S.server){notify('Wähle einen Server aus.');return}
+  const code=S.server.invite_code;
+  if(!code){notify('Kein Einladungscode vorhanden.');return}
+  try{await navigator.clipboard.writeText(code);notify('Einladungscode kopiert. Teile ihn nur mit Leuten, die du einladen möchtest.')}
+  catch{prompt('Einladungscode zum Kopieren:',code)}
+};
 el('composerForm').onsubmit=send;
 el('friendFilter').oninput=renderFriends;
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{if(b.dataset.tab==='pending')showRequests();else tab(b.dataset.tab)});
