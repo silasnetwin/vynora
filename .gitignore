@@ -1,0 +1,12 @@
+# Local secrets and caches
+.env
+.env.*
+!.env.example
+*.local
+node_modules/
+dist/
+target/
+*.sqlite
+*.sqlite3
+*.db
+.DS_Store
