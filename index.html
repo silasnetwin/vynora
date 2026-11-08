@@ -82,8 +82,8 @@ input,textarea{background:#202127;color:inherit;border:1px solid #33353e;border-
   </aside>
   <main class="work">
     <header class="top"><strong id="headerTitle">♟ Freunde</strong><span class="sep"></span><div id="tabs">
-      <button class="tab active" data-tab="online">Online</button>
-      <button class="tab" data-tab="all">Alle</button>
+      <button class="tab" data-tab="online" title="Online-Status folgt später">Online</button>
+      <button class="tab active" data-tab="all">Alle</button>
       <button class="tab" data-tab="pending">Ausstehend</button>
       <button class="primary" style="padding:7px 12px" id="addFriendTop">Freund hinzufügen</button>
     </div></header>
@@ -121,7 +121,7 @@ import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.57.0';
 import {SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY} from './supabase-config.js';
 const el=id=>document.getElementById(id);
 const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
-const S={user:null,profile:null,profiles:new Map(),requests:[],friends:[],dms:[],servers:[],channels:[],server:null,chat:null,view:'friends',tab:'online',subscription:null,poll:null};
+const S={user:null,profile:null,profiles:new Map(),requests:[],friends:[],dms:[],servers:[],channels:[],server:null,chat:null,view:'friends',tab:'all',subscription:null,poll:null};
 const text=(tag,value,cls)=>{const n=document.createElement(tag);n.textContent=value;if(cls)n.className=cls;return n};
 const clear=id=>el(id).replaceChildren();
 const toggle=(id,visible)=>el(id).classList.toggle('hidden',!visible);
@@ -147,6 +147,7 @@ async function loadFriends(){
 }
 function renderFriends(){
   const rows=el('friendRows');rows.replaceChildren();let ids=S.friends;
+  if(S.tab==='online'){el('friendHeading').textContent='ONLINE-STATUS';rows.append(text('p','Live-Onlinestatus ist noch nicht verfügbar. Deine Kontakte findest du unter „Alle“.','muted'));return}
   if(S.tab==='pending'){el('friendHeading').textContent='AUSSTEHENDE ANFRAGEN';const b=text('button','Anfragen anzeigen','primary');b.onclick=()=>showRequests();rows.append(b);return}
   const q=el('friendFilter').value.toLowerCase().trim();
   ids=ids.filter(id=>pName(id).toLowerCase().includes(q)||pUser(id).includes(q));
