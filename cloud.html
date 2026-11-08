@@ -1,33 +1,221 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vynora Cloud</title><style>
-:root{font-family:system-ui,Arial,sans-serif;background:#15161c;color:#f0f0f4}*{box-sizing:border-box}body{margin:0}button,input{font:inherit}button{cursor:pointer}button{border:0;border-radius:8px;padding:10px 14px;background:#5865f2;color:white}button:disabled{opacity:.55}input{background:#23242e;border:1px solid #454652;color:white;padding:11px;border-radius:8px;min-width:0}main{max-width:1120px;margin:auto;min-height:100dvh}header{padding:18px 22px;background:#1c1d25;border-bottom:1px solid #30313b;display:flex;align-items:center;gap:12px}h1{font-size:22px;margin:0}h2{font-size:17px}p,small{color:#aeb0bf}.panel{background:#1e1f28;padding:22px;border-radius:12px;margin:20px}.auth{max-width:450px;margin:8vh auto}.stack{display:flex;flex-direction:column;gap:12px}.layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100dvh - 72px)}aside{border-right:1px solid #32333e;padding:18px}.body{display:flex;flex-direction:column;min-height:0;height:calc(100dvh - 72px)}.messages{flex:1;overflow-y:auto;padding:24px}.msg{margin:0 0 14px}.msg b{color:#a5aeff}.msg span{font-size:12px;color:#999}.msg p{margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere;color:#f0f0f4}.composer{display:flex;gap:10px;padding:16px}.composer input{flex:1}.contact{display:block;margin:8px 0;padding:12px;text-align:left;width:100%;background:#292b36}.contact.active{background:#5865f2}.error{color:#ff8585;min-height:20px}.hint{color:#aeb0bf}.hide{display:none!important}a{color:#a5aeff}@media(max-width:650px){.layout{grid-template-columns:130px 1fr}aside{padding:8px}.contact{padding:8px}.composer{padding:8px}header{padding:12px}}
-.layout{grid-template-columns:64px 254px minmax(0,1fr)}.serverrail{background:#111217;display:flex;align-items:center;flex-direction:column;padding:15px 8px;gap:12px}.servericon{background:#323544;display:grid;place-items:center;width:42px;height:42px;border-radius:14px;font-size:21px}.servericon:first-child{background:#5865f2}.accountbox{background:#24252f;border-radius:10px;padding:12px;margin:0 0 18px}.accountbox .stack{gap:8px}.accountbox label{font-size:11px}.accountbox input{width:100%;font-size:12px}.accountbox button.secondary{background:#414453;padding:7px;font-size:12px}.layout>aside{background:#191a20}.body>header{background:#1b1c24}.messages{background:#202127}@media(max-width:650px){.layout{grid-template-columns:44px 128px minmax(0,1fr)}.serverrail{padding:10px 2px}.servericon{width:36px;height:36px}.accountbox{padding:6px}.accountbox input{font-size:10px}}
-</style></head><body><main><header><span style="font-size:25px">✦</span><h1>Vynora Cloud</h1><span style="flex:1"></span><span id="current"></span><button id="logout" class="hide">Abmelden</button></header>
-<section id="setup" class="panel auth hide"><h2>Supabase noch nicht eingerichtet</h2><p>Trage zuerst deine Projekt-URL und den öffentlichen Publishable Key in <code>supabase-config.js</code> ein. Die lokale Demo findest du in <a href="./index.html">Vynora v0.1</a>.</p></section>
-<section id="auth" class="panel auth hide"><h2>Anmelden / Registrieren</h2><form id="authForm" class="stack"><input id="email" type="email" autocomplete="email" placeholder="E-Mail-Adresse" required><input id="password" type="password" autocomplete="current-password" minlength="8" placeholder="Passwort (min. 8 Zeichen)" required><button id="signIn">Anmelden</button><button type="button" id="signUp" style="background:#343643">Neues Konto erstellen</button><p id="authMsg" role="status"></p></form></section>
-<section id="app" class="layout hide"><div class="serverrail"><span class="servericon">✦</span><span class="servericon">💬</span><span class="servericon">＋</span></div><aside><h2>Direktnachrichten</h2><div class="accountbox"><div id="myUsername" class="hint">Profil wird geladen …</div><form id="profileForm" class="stack"><label for="newUsername" class="hint">Deinen Benutzernamen festlegen</label><input id="newUsername" maxlength="32" minlength="3" pattern="[a-z0-9_.]{3,32}" placeholder="z. B. silas" autocomplete="off"><button type="submit" class="secondary">Speichern</button></form></div><p>Kontakt per Nutzername suchen</p><form id="searchForm" class="stack"><input id="search" placeholder="Nutzername" maxlength="48" required><button>Suchen</button></form><div id="results"></div><h2>Chats</h2><div id="conversations"></div></aside><section class="body"><header><strong id="chatTitle">Wähle einen Chat aus</strong></header><div class="messages" id="messages"><p>Kontakte suchen und Unterhaltung starten.</p></div><form class="composer" id="sendForm"><input id="text" maxlength="2000" placeholder="Nachricht schreiben..." disabled><button id="send" disabled>Senden</button></form><p class="error" id="error" role="status" style="padding:0 16px"></p></section></section></main>
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#18191f">
+<title>Vynora — Chat, Friends & Communities</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:#17181e;color:#f3f3f5;font-size:14px}
+*{box-sizing:border-box}body{margin:0}button,input,textarea{font:inherit}button{cursor:pointer;color:inherit;background:transparent;border:0}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #99a0ff;outline-offset:2px}
+button:disabled{opacity:.4;cursor:default}button:hover:not(:disabled){filter:brightness(1.16)}
+input,textarea{background:#202127;color:inherit;border:1px solid #33353e;border-radius:7px;padding:10px;min-width:0}textarea{resize:none}a{color:#adb8ff}.hidden{display:none!important}
+#authView{display:grid;min-height:100dvh;place-items:center;background:radial-gradient(circle at 55% 20%,#303250,#111218 75%);padding:24px}
+.authCard{background:#262832;padding:32px;width:min(460px,100%);border-radius:14px;box-shadow:0 18px 70px #07080b88}
+.authCard h1{font-size:29px;margin:12px 0 0}.authCard p{color:#aaaebb}.authCard form{display:grid;gap:13px;margin-top:20px}
+.primary{background:#5865f2!important;color:#fff!important;border-radius:6px;padding:10px 14px;font-weight:650}.secondary{background:#343640;border-radius:6px;padding:9px 13px}
+.error{color:#ff9494;white-space:pre-line;font-size:12px}.hint{color:#a2a6b3;font-size:12px}.muted{color:#9295a3}
+#app{display:flex;width:100%;height:100dvh;overflow:hidden}
+.rail{width:72px;flex:0 0 72px;background:#111217;display:flex;flex-direction:column;align-items:center;gap:10px;padding:15px 7px;overflow:auto}
+.railButton{width:46px;min-height:46px;border-radius:16px;background:#30313c;font-size:21px;font-weight:750;transition:background .15s,border-radius .15s}
+.railButton:hover,.railButton.active{background:#5865f2;border-radius:13px}.railDivider{height:2px;background:#363740;width:34px;margin:1px}
+.side{width:265px;flex:0 0 265px;background:#14151b;display:flex;flex-direction:column;min-height:0}
+.sideTop{height:51px;flex:0 0 51px;border-bottom:1px solid #111217;padding:9px}
+.searchTop{background:#23242b;border-radius:6px;width:100%;text-align:left;padding:9px;font-size:12px}
+.sideScroll{flex:1;min-height:0;overflow:auto;padding:12px 9px}
+.navItem{display:flex;gap:11px;align-items:center;text-align:left;width:100%;padding:10px 11px;border-radius:7px;color:#b5b7c5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.navItem:hover,.navItem.active{background:#343640;color:#fff}
+.sectionLabel{font-size:11px;font-weight:650;letter-spacing:.06em;color:#8e909e;padding:15px 11px 8px;display:flex;align-items:center;justify-content:space-between}
+.iconSmall{font-size:18px}.avatar{width:34px;min-width:34px;height:34px;border-radius:50%;background:#5964b5;display:grid;place-items:center;font-weight:750;color:white}
+.account{height:60px;background:#22232b;display:flex;align-items:center;gap:9px;padding:8px;flex-shrink:0}
+.accountInfo{min-width:0;flex:1}.accountInfo b,.accountInfo small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.accountInfo small{font-size:11px;color:#a6a9b8}.onlineDot{color:#39c793}
+.work{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{height:51px;min-height:51px;box-shadow:0 1px 3px #0005;display:flex;align-items:center;gap:12px;padding:0 19px;z-index:1}
+.top strong{font-size:15px}.sep{width:1px;height:23px;background:#383943}.tab{border-radius:5px;padding:6px 10px;color:#b3b5c3}.tab.active{background:#353640;color:#fff}
+.body{display:flex;min-height:0;flex:1}.content{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+.right{width:285px;flex:0 0 285px;border-left:1px solid #292a33;padding:20px 16px;overflow:auto}
+.right h3{margin:0 0 12px}.activeCard{background:#22242b;border-radius:8px;padding:20px;text-align:center;color:#c1c3d0;font-size:13px}
+.view{flex:1;min-height:0;display:flex;flex-direction:column}
+.friendsArea{overflow:auto;padding:17px 22px}.filter{width:100%;background:#111217;border-color:#34353e}.listHead{font-size:11px;color:#a9acb8;margin:20px 0 11px;font-weight:700}
+.friendRow{display:flex;align-items:center;gap:12px;border-top:1px solid #30313a;padding:12px 0}.friendRow .grow{flex:1;min-width:0}
+.friendRow b,.friendRow small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.friendRow small{color:#9b9eaa;margin-top:3px}
+.pill{background:#292b35;border-radius:8px;padding:9px 12px}
+.msgs{flex:1;overflow-y:auto;min-height:0;padding:20px 24px 0}.msg{display:flex;gap:13px;padding:8px 0}.msgMain{min-width:0;flex:1}.msgName{font-weight:700}.msgDate{color:#9295a3;font-size:11px;margin-left:8px}.msgBody{white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0;line-height:1.45}
+.composer{margin:14px 19px 23px;display:flex;gap:10px;background:#363740;border-radius:9px;padding:9px}.composer input{flex:1;background:transparent;border:0;outline:0}
+.composer .primary{padding:9px 17px}.empty{color:#a2a4b1;padding:25px}.profilePanel{padding:18px}.profilePanel label{display:block;margin-top:12px;font-size:12px;color:#bbb}.profilePanel input{width:100%;margin-top:6px}
+.toast{position:absolute;bottom:79px;right:24px;background:#343749;border:1px solid #535779;padding:12px 17px;max-width:400px;border-radius:8px;box-shadow:0 12px 30px #0008;z-index:99}
+@media(max-width:1120px){.right{display:none}}@media(max-width:700px){.rail{width:54px;flex-basis:54px;padding:10px 2px}.railButton{width:39px;min-height:39px;font-size:18px}.side{width:170px;flex-basis:170px}.top{gap:4px;padding:0 8px}.top strong{font-size:13px}.tab{padding:6px;font-size:11px}.friendsArea{padding:10px}.msgs{padding:8px}.composer{margin:8px}.navItem{padding:8px 6px;font-size:12px}.sectionLabel{padding-left:6px;font-size:10px}}
+</style>
+</head>
+<body>
+<div id="authView">
+  <div class="authCard">
+    <div style="font-size:33px;color:#abb0ff">✦</div>
+    <h1>Willkommen bei Vynora</h1>
+    <p>Freunde treffen. Unterhalten. Eigene Communities gestalten.</p>
+    <form id="authForm">
+      <label>E-Mail-Adresse<input id="authEmail" type="email" autocomplete="email" required style="width:100%;margin-top:6px"></label>
+      <label>Passwort<input id="authPassword" type="password" minlength="8" autocomplete="current-password" required style="width:100%;margin-top:6px"></label>
+      <button class="primary" type="submit">Anmelden</button>
+      <button id="register" class="secondary" type="button">Neues Konto registrieren</button>
+      <div id="authStatus" class="hint" role="status"></div>
+    </form>
+    <p class="hint">Eigener unabhängiger Messenger im Aufbau. Verwende für Tests keine vertraulichen Informationen.</p>
+  </div>
+</div>
+<div id="app" class="hidden">
+  <nav class="rail" id="serversRail" aria-label="Servernavigation"></nav>
+  <aside class="side">
+    <div class="sideTop"><button class="searchTop" id="quickSearch">Freunde oder Kanal suchen ⌕</button></div>
+    <div class="sideScroll">
+      <button class="navItem active" id="navFriends">♟ &nbsp; Freunde</button>
+      <button class="navItem" id="navRequests">✉ &nbsp; Anfragen <span id="requestCount"></span></button>
+      <div class="sectionLabel"><span>DIREKTNACHRICHTEN</span><button id="addFriendSide" aria-label="Freund hinzufügen">＋</button></div>
+      <div id="dmNav"></div>
+      <div class="sectionLabel"><span id="serverNavTitle">KANÄLE</span><button id="addChannel" title="Kanal erstellen">＋</button></div>
+      <div id="channelNav"></div>
+    </div>
+    <div class="account">
+      <span class="avatar" id="selfAvatar">V</span><div class="accountInfo"><b id="selfDisplay">Vynora</b><small id="selfUsername">● Online</small></div>
+      <button id="settingsButton" title="Einstellungen">⚙</button><button id="logout" title="Abmelden">⇥</button>
+    </div>
+  </aside>
+  <main class="work">
+    <header class="top"><strong id="headerTitle">♟ Freunde</strong><span class="sep"></span><div id="tabs">
+      <button class="tab active" data-tab="online">Online</button>
+      <button class="tab" data-tab="all">Alle</button>
+      <button class="tab" data-tab="pending">Ausstehend</button>
+      <button class="primary" style="padding:7px 12px" id="addFriendTop">Freund hinzufügen</button>
+    </div></header>
+    <div class="body">
+      <div class="content">
+        <section class="view" id="friendsView"><div class="friendsArea">
+          <input class="filter" id="friendFilter" placeholder="Suchen" aria-label="Freunde suchen">
+          <div class="listHead" id="friendHeading">ALLE FREUNDE</div><div id="friendRows"></div>
+        </div></section>
+        <section class="view hidden" id="requestsView"><div class="friendsArea">
+          <h2>Freundschaftsanfragen</h2><p class="muted">Anfragen senden, annehmen und ablehnen.</p>
+          <form id="searchUserForm" style="display:flex;gap:8px;margin:15px 0">
+            <input id="searchUser" placeholder="Nutzername suchen …" minlength="3" maxlength="48" required style="flex:1"><button class="primary">Suchen</button>
+          </form><div id="searchResults"></div><div class="listHead">EINGEHENDE / AUSGEHENDE ANFRAGEN</div><div id="requestsRows"></div>
+        </div></section>
+        <section class="view hidden" id="chatView">
+          <div class="msgs" id="messages"></div>
+          <form class="composer" id="composerForm"><input id="composerInput" maxlength="2000" autocomplete="off" placeholder="Nachricht schreiben..." aria-label="Nachricht schreiben"><button class="primary" id="sendButton">Senden</button></form>
+        </section>
+        <section class="view hidden" id="settingsView"><div class="friendsArea profilePanel" style="max-width:560px">
+          <h2>Mein Profil</h2><p class="muted">Passe deinen öffentlichen Anzeigenamen und deinen Benutzernamen an.</p>
+          <form id="profileForm"><label>Anzeigename<input id="displayNameInput" maxlength="40" required></label>
+            <label>Benutzername (3–32 Zeichen, a–z, 0–9, _ und .)<input id="usernameInput" maxlength="32" minlength="3" required></label>
+            <button class="primary" style="margin-top:18px">Profil speichern</button>
+          </form><p class="hint">Vynora nutzt Supabase für Anmeldung und Nachrichtenspeicherung. Nachrichten sind derzeit nicht Ende-zu-Ende-verschlüsselt.</p>
+        </div></section>
+      </div>
+      <aside class="right"><h3 id="rightHeading">Jetzt aktiv</h3><div class="activeCard" id="rightText">Hier ist es noch ruhig …</div></aside>
+    </div>
+  </main>
+  <div id="toast" class="toast hidden" role="status"></div>
+</div>
 <script type="module">
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.57.0';
 import {SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY} from './supabase-config.js';
-const $=id=>document.getElementById(id);
-const show=(id,on)=>$(id).classList.toggle('hide',!on);
-let sb=null,user=null,selected=null,channel=null,poll=null;
-function error(msg){$('error').textContent=msg||''}
-function make(tag,text){let n=document.createElement(tag);n.textContent=text;return n}
-if(!SUPABASE_URL.includes('YOUR_PROJECT') && SUPABASE_PUBLISHABLE_KEY!=='YOUR_PUBLISHABLE_KEY'){
-  sb=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
-  sb.auth.onAuthStateChange((_event,session)=>{queueMicrotask(()=>setSession(session?.user||null))});
-  sb.auth.getUser().then(({data})=>setSession(data?.user||null)).catch(e=>{$('authMsg').textContent=e.message});
-}else show('setup',true);
-async function setSession(u){user=u;show('setup',false);show('auth',!u);show('app',!!u);show('logout',!!u);$('current').textContent=u?.email||'';if(!u){$('myUsername').textContent='';selected=null;if(channel){await sb.removeChannel(channel);channel=null}if(poll)clearInterval(poll);return}await Promise.all([loadOwnProfile(),loadConversations()])}
-$('authForm').onsubmit=async e=>{e.preventDefault();$('authMsg').textContent='';let {error:e2}=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(e2)$('authMsg').textContent=e2.message};
-$('signUp').onclick=async()=>{if(!$('email').validity.valid||$('password').value.length<8){$('authMsg').textContent='Bitte gültige E-Mail und mindestens 8 Zeichen eingeben.';return}let {error:e}=await sb.auth.signUp({email:$('email').value,password:$('password').value,options:{emailRedirectTo:new URL('./cloud.html',window.location.href).href}});$('authMsg').textContent=e?e.message:'Registrierung angefragt. Falls E-Mail-Bestätigung aktiv ist, prüfe dein Postfach.'};
-$('logout').onclick=()=>sb.auth.signOut();
-$('searchForm').onsubmit=async e=>{e.preventDefault();let q=$('search').value.trim();let out=$('results');out.replaceChildren();if(q.length<3)return;let {data,error:e2}=await sb.from('profiles').select('id,username,display_name').ilike('username',q+'%').limit(10);if(e2){error(e2.message);return}for(const p of(data||[]).filter(p=>p.id!==user.id)){let b=make('button',p.display_name+' ('+p.username+')');b.className='contact';b.onclick=()=>startDm(p.id,p.display_name);out.append(b)}if(!out.children.length)out.textContent='Keine Kontakte gefunden.'};
-async function loadOwnProfile(){let {data,error:e}=await sb.from('profiles').select('username,display_name').eq('id',user.id).single();if(e){error('Profil konnte nicht geladen werden: '+e.message);return} $('myUsername').textContent='Dein Account: @'+data.username;$('newUsername').value=data.username.startsWith('user_')?'':data.username}
-$('profileForm').onsubmit=async e=>{e.preventDefault();if(!user)return;const username=$('newUsername').value.trim().toLowerCase();if(!/^[a-z0-9_.]{3,32}$/.test(username)){error('Benutzername: 3–32 Zeichen, nur Kleinbuchstaben, Zahlen, _ und .');return}let {error:e2}=await sb.from('profiles').update({username}).eq('id',user.id);if(e2){error(e2.message);return}error('');await loadOwnProfile()}
-async function startDm(otherId,name){error('');let {data,error:e}=await sb.rpc('start_dm',{p_other_user:otherId});if(e){error(e.message);return}await loadConversations();await openChat(data,name)}
-async function loadConversations(){let {data,error:e}=await sb.from('conversation_members').select('conversation_id').eq('user_id',user.id).limit(100);if(e){error(e.message);return}let out=$('conversations');out.replaceChildren();for(let m of data||[]){let {data:members}=await sb.from('conversation_members').select('user_id').eq('conversation_id',m.conversation_id);let other=members?.find(x=>x.user_id!==user.id);if(!other)continue;let {data:profile}=await sb.from('profiles').select('display_name').eq('id',other.user_id).single();let name=profile?.display_name||'Kontakt';let b=make('button',name);b.className='contact';b.onclick=()=>openChat(m.conversation_id,name);out.append(b)}}
-async function openChat(id,name){selected=id;$('chatTitle').textContent='@ '+name;$('text').disabled=false;$('send').disabled=false;error('');if(channel){await sb.removeChannel(channel);channel=null}await loadMessages();channel=sb.channel('chat-'+id).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},()=>loadMessages()).subscribe();if(poll)clearInterval(poll);poll=setInterval(()=>{if(selected===id && !document.hidden)loadMessages()},10000)}
-async function loadMessages(){if(!selected)return;let id=selected;let {data,error:e}=await sb.from('messages').select('sender_id,body,created_at').eq('conversation_id',id).order('created_at',{ascending:true}).limit(150);if(id!==selected)return;if(e){error(e.message);return}let out=$('messages');out.replaceChildren();for(let m of data||[]){let row=make('div','');row.className='msg';let b=make('b',m.sender_id===user.id?'Du':'Kontakt');let t=make('span',' · '+new Date(m.created_at).toLocaleString('de-DE'));row.append(b,t,make('p',m.body));out.append(row)}out.scrollTop=out.scrollHeight}
-$('sendForm').onsubmit=async e=>{e.preventDefault();let txt=$('text').value.trim();if(!selected||!txt)return;$('send').disabled=true;let {error:e2}=await sb.from('messages').insert({conversation_id:selected,sender_id:user.id,body:txt});$('send').disabled=false;if(e2){error(e2.message);return}$('text').value='';await loadMessages()};
-</script></body></html>
+const el=id=>document.getElementById(id);
+const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+const S={user:null,profile:null,profiles:new Map(),requests:[],friends:[],dms:[],servers:[],channels:[],server:null,chat:null,view:'friends',tab:'online',subscription:null,poll:null};
+const text=(tag,value,cls)=>{const n=document.createElement(tag);n.textContent=value;if(cls)n.className=cls;return n};
+const clear=id=>el(id).replaceChildren();
+const toggle=(id,visible)=>el(id).classList.toggle('hidden',!visible);
+const short=id=>id.slice(0,7);
+let toastTimer;
+function notify(message){el('toast').textContent=message;toggle('toast',true);clearTimeout(toastTimer);toastTimer=setTimeout(()=>toggle('toast',false),5000)}
+function explain(e){notify(e?.message||String(e)||'Unbekannter Fehler')}
+function pName(id){return S.profiles.get(id)?.display_name||('Nutzer '+short(id))}
+function pUser(id){return S.profiles.get(id)?.username||short(id)}
+async function readProfiles(ids){const needed=[...new Set(ids.filter(Boolean))].filter(x=>!S.profiles.has(x));if(!needed.length)return;const {data,error}=await client.from('profiles').select('id,username,display_name').in('id',needed);if(error)throw error;for(const p of data||[])S.profiles.set(p.id,p)}
+function makeAvatar(name){return text('span',(name||'?').slice(0,1).toUpperCase(),'avatar')}
+function navButton(label,onclick,active=false){const b=text('button',label,'navItem'+(active?' active':''));b.onclick=onclick;return b}
+function setTitle(title){el('headerTitle').textContent=title}
+function view(name){S.view=name;for(const x of ['friends','requests','chat','settings'])toggle(x+'View',x===name);toggle('tabs',name==='friends');el('navFriends').classList.toggle('active',name==='friends');el('navRequests').classList.toggle('active',name==='requests');el('rightHeading').textContent=name==='friends'?'Jetzt aktiv':name==='chat'?'Mitglieder':'Vynora';el('rightText').textContent=name==='friends'?'Treffe deine Freunde und starte ein Gespräch.':name==='chat'?'Nachrichten werden sicher durch Zugriffsregeln in Supabase geschützt.':'Baue deine eigene Community auf.'}
+function tab(t){S.tab=t;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));renderFriends()}
+async function loadProfile(){const {data,error}=await client.from('profiles').select('id,username,display_name').eq('id',S.user.id).single();if(error)throw error;S.profile=data;S.profiles.set(data.id,data);el('selfDisplay').textContent=data.display_name;el('selfUsername').textContent='@'+data.username;el('selfAvatar').textContent=data.display_name.slice(0,1).toUpperCase();el('displayNameInput').value=data.display_name;el('usernameInput').value=data.username.startsWith('user_')?'':data.username}
+async function loadFriends(){
+  const {data,error}=await client.from('friend_requests').select('id,sender_id,receiver_id,status,created_at').or('sender_id.eq.'+S.user.id+',receiver_id.eq.'+S.user.id).order('created_at',{ascending:false}).limit(200);
+  if(error)throw error;S.requests=data||[];S.friends=S.requests.filter(r=>r.status==='accepted').map(r=>r.sender_id===S.user.id?r.receiver_id:r.sender_id);
+  await readProfiles(S.requests.map(r=>r.sender_id===S.user.id?r.receiver_id:r.sender_id));
+  el('requestCount').textContent=S.requests.filter(r=>r.status==='pending'&&r.receiver_id===S.user.id).length||'';
+  renderFriends();renderRequests();renderSidebar()
+}
+function renderFriends(){
+  const rows=el('friendRows');rows.replaceChildren();let ids=S.friends;
+  if(S.tab==='pending'){el('friendHeading').textContent='AUSSTEHENDE ANFRAGEN';const b=text('button','Anfragen anzeigen','primary');b.onclick=()=>showRequests();rows.append(b);return}
+  const q=el('friendFilter').value.toLowerCase().trim();
+  ids=ids.filter(id=>pName(id).toLowerCase().includes(q)||pUser(id).includes(q));
+  el('friendHeading').textContent='FREUNDE — '+ids.length;
+  for(const id of ids){const r=text('div','','friendRow');const a=makeAvatar(pName(id));const info=text('div','','grow');info.append(text('b',pName(id)),text('small','@'+pUser(id)));const send=text('button','Nachricht','pill');send.onclick=()=>openDm(id);const block=text('button','Blockieren','pill');block.onclick=()=>blockUser(id);r.append(a,info,send,block);rows.append(r)}
+  if(!ids.length)rows.append(text('p','Noch keine Freunde. Du kannst über „Freund hinzufügen“ einen Kontakt suchen.','muted'))
+}
+function renderRequests(){const rows=el('requestsRows');rows.replaceChildren();for(const r of S.requests.filter(r=>r.status==='pending')){const incoming=r.receiver_id===S.user.id;const id=incoming?r.sender_id:r.receiver_id;const line=text('div','','friendRow');const info=text('div','','grow');info.append(text('b',pName(id)),text('small',(incoming?'Eingehend':'Gesendet')+' · @'+pUser(id)));line.append(makeAvatar(pName(id)),info);if(incoming){for(const [status,label] of [['accepted','Annehmen'],['declined','Ablehnen']]){const b=text('button',label,'pill');b.onclick=()=>changeRequest(r,status);line.append(b)}}rows.append(line)}if(!rows.childElementCount)rows.append(text('p','Keine offenen Anfragen','muted'))}
+async function changeRequest(r,status){try{const {error}=await client.from('friend_requests').update({status}).eq('id',r.id).eq('receiver_id',S.user.id);if(error)throw error;await loadFriends();notify(status==='accepted'?'Freundschaft bestätigt':'Anfrage abgelehnt')}catch(e){explain(e)}}
+async function blockUser(id){if(!confirm('Diesen Kontakt blockieren? Danach kannst du ihm keine Nachrichten mehr senden.'))return;try{const {error}=await client.from('user_blocks').insert({blocker_id:S.user.id,blocked_id:id});if(error)throw error;await loadFriends();notify('Kontakt blockiert.')}catch(e){explain(e)}}
+function showFriends(){S.server=null;S.chat=null;view('friends');setTitle('♟ Freunde');renderFriends();renderSidebar();renderRail()}
+function showRequests(){S.server=null;S.chat=null;view('requests');setTitle('✉ Freundschaftsanfragen');renderRequests();renderSidebar();renderRail()}
+function showSettings(){S.chat=null;view('settings');setTitle('⚙ Benutzereinstellungen');renderSidebar()}
+function renderSidebar(){
+  const dm=el('dmNav');dm.replaceChildren();
+  for(const d of S.dms){const id=d.otherId;const b=navButton('●  '+pName(id),()=>openDm(id,d.id),S.chat?.type==='dm'&&S.chat.id===d.id);dm.append(b)}
+  const cn=el('channelNav');cn.replaceChildren();
+  el('serverNavTitle').textContent=S.server?S.server.name.toUpperCase():'KANÄLE';
+  for(const c of S.channels.filter(c=>c.server_id===S.server?.id)){cn.append(navButton('# '+c.name,()=>openChannel(c),S.chat?.type==='channel'&&S.chat.id===c.id))}
+}
+function renderRail(){const rail=el('serversRail');rail.replaceChildren();const home=text('button','✦','railButton'+(!S.server?' active':''));home.title='Direktnachrichten';home.onclick=showFriends;rail.append(home,text('div','','railDivider'));for(const srv of S.servers){const b=text('button',srv.name.slice(0,2).toUpperCase(),'railButton'+(S.server?.id===srv.id?' active':''));b.title=srv.name;b.onclick=()=>selectServer(srv);rail.append(b)}const add=text('button','＋','railButton');add.title='Server erstellen';add.onclick=createServer;rail.append(add);const join=text('button','↪','railButton');join.title='Mit Einladung beitreten';join.onclick=joinServer;rail.append(join)}
+async function loadDms(){
+  const {data,error}=await client.from('conversation_members').select('conversation_id').eq('user_id',S.user.id).limit(100);if(error)throw error;
+  S.dms=[];for(const m of data||[]){const {data:users,error:e}=await client.from('conversation_members').select('user_id').eq('conversation_id',m.conversation_id);if(e)throw e;const other=users?.find(x=>x.user_id!==S.user.id);if(other)S.dms.push({id:m.conversation_id,otherId:other.user_id})}
+  await readProfiles(S.dms.map(d=>d.otherId));renderSidebar()
+}
+async function loadServers(){
+  const {data,error}=await client.from('server_members').select('server_id').eq('user_id',S.user.id);if(error)throw error;
+  const ids=(data||[]).map(x=>x.server_id);
+  if(ids.length){const sr=await client.from('servers').select('id,name,owner_id,invite_code').in('id',ids);if(sr.error)throw sr.error;S.servers=sr.data||[]}
+  else S.servers=[];
+  renderRail();renderSidebar()
+}
+async function selectServer(srv){try{await leaveChat();S.server=srv;S.chat=null;const {data,error}=await client.from('channels').select('id,server_id,name').eq('server_id',srv.id).order('created_at');if(error)throw error;S.channels=data||[];renderSidebar();renderRail();view('chat');setTitle(srv.name);const first=S.channels[0];if(first)await openChannel(first);else el('messages').replaceChildren(text('p','Dieser Server hat noch keine Textkanäle.','muted'))}catch(e){explain(e)}}
+async function createServer(){let name=prompt('Name des Servers:');if(!name)return;name=name.trim();if(!name||name.length>64)return;try{const {data,error}=await client.rpc('create_server',{p_name:name});if(error)throw error;await loadServers();const server=S.servers.find(s=>s.id===data);if(server)await selectServer(server);notify('Server erstellt!')}catch(e){explain(e)}}
+async function joinServer(){const code=prompt('Einladungscode eingeben:');if(!code)return;try{const {data,error}=await client.rpc('join_server',{p_invite_code:code.trim()});if(error)throw error;await loadServers();const server=S.servers.find(s=>s.id===data);if(server)await selectServer(server);notify('Server beigetreten!')}catch(e){explain(e)}}
+async function createChannel(){if(!S.server){notify('Bitte wähle zuerst einen Server.');return}if(S.server.owner_id!==S.user.id){notify('Nur der Serverinhaber kann Kanäle erstellen.');return}const name=prompt('Kanalname (z. B. allgemein):');if(!name)return;try{const {error}=await client.rpc('create_channel',{p_server:S.server.id,p_name:name.trim()});if(error)throw error;await selectServer(S.server);notify('Kanal erstellt')}catch(e){explain(e)}}
+async function openDm(id,existing){
+  try{let cid=existing;if(!cid){const {data,error}=await client.rpc('start_dm',{p_other_user:id});if(error)throw error;cid=data;await loadDms()}
+    S.server=null;S.chat={type:'dm',id:cid,name:pName(id),otherId:id};setTitle('@ '+pName(id));view('chat');renderRail();renderSidebar();await listenToChat()
+  }catch(e){explain(e)}
+}
+async function openChannel(c){S.chat={type:'channel',id:c.id,name:c.name};view('chat');setTitle('# '+c.name);renderSidebar();await listenToChat()}
+async function leaveChat(){if(S.subscription){await client.removeChannel(S.subscription);S.subscription=null}if(S.poll){clearInterval(S.poll);S.poll=null}}
+async function listenToChat(){await leaveChat();if(!S.chat)return;const {type,id}=S.chat;await loadMessages();const table=type==='dm'?'messages':'channel_messages';const column=type==='dm'?'conversation_id':'channel_id';S.subscription=client.channel('vynora-'+type+'-'+id).on('postgres_changes',{event:'INSERT',schema:'public',table,filter:column+'=eq.'+id},()=>loadMessages()).subscribe();S.poll=setInterval(()=>{if(!document.hidden&&S.chat?.id===id)loadMessages()},12000)}
+async function loadMessages(){const ch=S.chat;if(!ch)return;const type=ch.type;const table=type==='dm'?'messages':'channel_messages';const field=type==='dm'?'conversation_id':'channel_id';try{
+ const {data,error}=await client.from(table).select('id,sender_id,body,created_at').eq(field,ch.id).order('created_at',{ascending:true}).limit(150);if(error)throw error;if(S.chat?.id!==ch.id)return;
+ await readProfiles((data||[]).map(m=>m.sender_id));const area=el('messages');area.replaceChildren();
+ if(!(data||[]).length)area.append(text('p','Hier beginnt die Unterhaltung. Schreib die erste Nachricht!','empty'));
+ for(const m of data||[]){const r=text('div','','msg'),body=text('div','','msgMain'),title=text('div',''),who=text('span',m.sender_id===S.user.id?'Du':pName(m.sender_id),'msgName'),date=text('span',new Date(m.created_at).toLocaleString('de-DE'),'msgDate');title.append(who,date);body.append(title,text('div',m.body,'msgBody'));r.append(makeAvatar(pName(m.sender_id)),body);area.append(r)}
+ area.scrollTop=area.scrollHeight
+ }catch(e){explain(e)}}
+async function send(e){e.preventDefault();if(!S.chat)return;const body=el('composerInput').value.trim();if(!body)return;el('sendButton').disabled=true;try{const table=S.chat.type==='dm'?'messages':'channel_messages',key=S.chat.type==='dm'?'conversation_id':'channel_id';const {error}=await client.from(table).insert({[key]:S.chat.id,sender_id:S.user.id,body});if(error)throw error;el('composerInput').value='';await loadMessages()}catch(e){explain(e)}finally{el('sendButton').disabled=false}}
+async function start(){await Promise.all([loadProfile(),loadFriends(),loadDms(),loadServers()]);showFriends()}
+async function session(user){if(S.user?.id===user?.id)return;await leaveChat();S.user=user;toggle('authView',!user);toggle('app',!!user);if(!user){S.profile=null;S.profiles=new Map();S.friends=[];S.dms=[];S.servers=[];return}try{await start()}catch(e){explain(e)}}
+el('authForm').onsubmit=async e=>{e.preventDefault();el('authStatus').textContent='Anmelden…';const {error}=await client.auth.signInWithPassword({email:el('authEmail').value,password:el('authPassword').value});el('authStatus').textContent=error?error.message:''};
+el('register').onclick=async()=>{if(!el('authEmail').validity.valid||el('authPassword').value.length<8){el('authStatus').textContent='Bitte gültige E-Mail und mindestens 8 Zeichen Passwort eingeben.';return}const {error}=await client.auth.signUp({email:el('authEmail').value,password:el('authPassword').value,options:{emailRedirectTo:location.href.split('#')[0]}});el('authStatus').textContent=error?error.message:'Account angelegt. Bitte bestätige ggf. die E-Mail, bevor du dich anmeldest.'};
+el('logout').onclick=()=>client.auth.signOut();
+el('navFriends').onclick=showFriends;el('navRequests').onclick=showRequests;
+el('addFriendTop').onclick=showRequests;el('addFriendSide').onclick=showRequests;
+el('settingsButton').onclick=showSettings;
+el('quickSearch').onclick=()=>{showRequests();el('searchUser').focus()};
+el('addChannel').onclick=createChannel;
+el('composerForm').onsubmit=send;
+el('friendFilter').oninput=renderFriends;
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{if(b.dataset.tab==='pending')showRequests();else tab(b.dataset.tab)});
+el('searchUserForm').onsubmit=async e=>{e.preventDefault();const q=el('searchUser').value.trim().toLowerCase();const out=el('searchResults');out.replaceChildren();try{const {data,error}=await client.from('profiles').select('id,username,display_name').ilike('username',q+'%').limit(12);if(error)throw error;for(const p of(data||[]).filter(x=>x.id!==S.user.id)){S.profiles.set(p.id,p);const row=text('div','','friendRow');const info=text('div','','grow');info.append(text('b',p.display_name),text('small','@'+p.username));const btn=text('button','Anfrage senden','primary');btn.onclick=async()=>{try{const {error:e2}=await client.from('friend_requests').insert({sender_id:S.user.id,receiver_id:p.id});if(e2)throw e2;notify('Anfrage gesendet');await loadFriends()}catch(e3){explain(e3)}};row.append(makeAvatar(p.display_name),info,btn);out.append(row)}if(!out.childElementCount)out.append(text('p','Keine Nutzer gefunden','muted'))}catch(e2){explain(e2)}};
+el('profileForm').onsubmit=async e=>{e.preventDefault();const display_name=el('displayNameInput').value.trim(),username=el('usernameInput').value.trim().toLowerCase();if(!display_name||!(/^[a-z0-9_.]{3,32}$/).test(username)){notify('Ungültiger Name oder Benutzername');return}try{const {error}=await client.from('profiles').update({display_name,username}).eq('id',S.user.id);if(error)throw error;S.profiles.delete(S.user.id);await loadProfile();notify('Profil gespeichert')}catch(e2){explain(e2)}};
+client.auth.onAuthStateChange((_event,s)=>queueMicrotask(()=>session(s?.user||null)));
+client.auth.getUser().then(({data})=>session(data?.user||null)).catch(explain);
+</script>
+</body></html>
