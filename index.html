@@ -206,7 +206,7 @@ async function readProfiles(ids){const needed=[...new Set(ids.filter(Boolean))].
 function makeAvatar(name){return text('span',(name||'?').slice(0,1).toUpperCase(),'avatar')}
 function navButton(label,onclick,active=false){const b=text('button',label,'navItem'+(active?' active':''));b.onclick=onclick;return b}
 function setTitle(title){el('headerTitle').textContent=title}
-function view(name){S.view=name;for(const x of ['friends','requests','chat','settings'])toggle(x+'View',x===name);toggle('tabs',name==='friends');el('navFriends').classList.toggle('active',name==='friends');el('navRequests').classList.toggle('active',name==='requests');el('rightHeading').textContent=name==='friends'?'Jetzt aktiv':name==='chat'?'Mitglieder':'Vynora';el('rightText').textContent=name==='friends'?'Treffe deine Freunde und starte ein Gespräch.':name==='chat'?'Nachrichten werden sicher durch Zugriffsregeln in Supabase geschützt.':'Baue deine eigene Community auf.'}
+function view(name){S.view=name;for(const x of ['friends','requests','chat','settings'])toggle(x+'View',x===name);toggle('tabs',name==='friends');el('navFriends').classList.toggle('active',name==='friends');el('navRequests').classList.toggle('active',name==='requests');el('rightHeading').textContent=name==='friends'?'Jetzt aktiv':name==='chat'?'Mitglieder':'Vynora';renderRight().catch(explain)}
 function tab(t){S.tab=t;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));renderFriends()}
 async function loadProfile(){const {data,error}=await client.from('profiles').select('id,username,display_name,last_seen_at,presence_status').eq('id',S.user.id).single();if(error)throw error;S.profile=data;S.profiles.set(data.id,data);el('selfDisplay').textContent=data.display_name;el('selfUsername').textContent='@'+data.username;el('selfAvatar').textContent=data.display_name.slice(0,1).toUpperCase();el('displayNameInput').value=data.display_name;el('usernameInput').value=data.username.startsWith('user_')?'':data.username;el('presenceSelect').value=data.presence_status||'online'}
 async function loadFriends(){
@@ -217,14 +217,20 @@ async function loadFriends(){
   renderFriends();renderRequests();renderSidebar()
 }
 function renderFriends(){
-  const rows=el('friendRows');rows.replaceChildren();let ids=S.friends;
-  if(S.tab==='online'){el('friendHeading').textContent='ONLINE-STATUS';rows.append(text('p','Live-Onlinestatus ist noch nicht verfügbar. Deine Kontakte findest du unter „Alle“.','muted'));return}
-  if(S.tab==='pending'){el('friendHeading').textContent='AUSSTEHENDE ANFRAGEN';const b=text('button','Anfragen anzeigen','primary');b.onclick=()=>showRequests();rows.append(b);return}
-  const q=el('friendFilter').value.toLowerCase().trim();
-  ids=ids.filter(id=>pName(id).toLowerCase().includes(q)||pUser(id).includes(q));
-  el('friendHeading').textContent='FREUNDE — '+ids.length;
-  for(const id of ids){const r=text('div','','friendRow');const a=makeAvatar(pName(id));const info=text('div','','grow');info.append(text('b',pName(id)),text('small','@'+pUser(id)));const send=text('button','Nachricht','pill');send.onclick=()=>openDm(id);const block=text('button','Blockieren','pill');block.onclick=()=>blockUser(id);r.append(a,info,send,block);rows.append(r)}
-  if(!ids.length)rows.append(text('p','Noch keine Freunde. Du kannst über „Freund hinzufügen“ einen Kontakt suchen.','muted'))
+ const rows=el('friendRows');rows.replaceChildren();
+ let ids=S.friends;
+ if(S.tab==='pending'){el('friendHeading').textContent='FREUNDSCHAFTSANFRAGEN';const b=text('button','Offene Anfragen ansehen','primary');b.onclick=showRequests;rows.append(b);return}
+ if(S.tab==='online')ids=ids.filter(online);
+ const q=el('friendFilter').value.trim().toLowerCase();
+ ids=ids.filter(id=>pName(id).toLowerCase().includes(q)||pUser(id).toLowerCase().includes(q));
+ el('friendHeading').textContent=(S.tab==='online'?'ONLINE':'ALLE FREUNDE')+' — '+ids.length;
+ for(const id of ids){
+  const row=text('div','','friendRow'),a=makeAvatar(pName(id)),info=text('div','','grow');
+  info.append(text('b',pName(id)),text('small',online(id)?'🟢 Online · @'+pUser(id):'Offline · @'+pUser(id)));
+  row.append(a,info,iconButton('chat','Nachricht senden',()=>openDm(id)),iconButton('members','Profil ansehen',()=>showUserProfile(id)));
+  rows.append(row)
+ }
+ if(!ids.length){const empty=text('div','','emptyState');empty.append(text('div',S.tab==='online'?'☾':'✦','symbol'),text('h3',S.tab==='online'?'Gerade niemand online':'Hier ist es noch ruhig'),text('p',S.tab==='online'?'Deine Freunde werden hier angezeigt, wenn sie Vynora verwenden.':'Füge Freunde über ihren Benutzernamen hinzu.'));rows.append(empty)}
 }
 function renderRequests(){const rows=el('requestsRows');rows.replaceChildren();for(const r of S.requests.filter(r=>r.status==='pending')){const incoming=r.receiver_id===S.user.id;const id=incoming?r.sender_id:r.receiver_id;const line=text('div','','friendRow');const info=text('div','','grow');info.append(text('b',pName(id)),text('small',(incoming?'Eingehend':'Gesendet')+' · @'+pUser(id)));line.append(makeAvatar(pName(id)),info);if(incoming){for(const [status,label] of [['accepted','Annehmen'],['declined','Ablehnen']]){const b=text('button',label,'pill');b.onclick=()=>changeRequest(r,status);line.append(b)}}rows.append(line)}if(!rows.childElementCount)rows.append(text('p','Keine offenen Anfragen','muted'))}
 async function changeRequest(r,status){try{const {error}=await client.from('friend_requests').update({status}).eq('id',r.id).eq('receiver_id',S.user.id);if(error)throw error;await loadFriends();notify(status==='accepted'?'Freundschaft bestätigt':'Anfrage abgelehnt')}catch(e){explain(e)}}
@@ -233,13 +239,73 @@ function showFriends(){leaveChat().catch(explain);S.server=null;S.chat=null;view
 function showRequests(){leaveChat().catch(explain);S.server=null;S.chat=null;view('requests');setTitle('✉ Freundschaftsanfragen');renderRequests();renderSidebar();renderRail()}
 function showSettings(){leaveChat().catch(explain);S.chat=null;view('settings');setTitle('⚙ Benutzereinstellungen');renderSidebar()}
 function renderSidebar(){
-  const dm=el('dmNav');dm.replaceChildren();
-  for(const d of S.dms){const id=d.otherId;const b=navButton('●  '+pName(id),()=>openDm(id,d.id),S.chat?.type==='dm'&&S.chat.id===d.id);dm.append(b)}
-  const cn=el('channelNav');cn.replaceChildren();
-  el('serverNavTitle').textContent=S.server?S.server.name.toUpperCase():'KANÄLE';
-  for(const c of S.channels.filter(c=>c.server_id===S.server?.id)){cn.append(navButton('# '+c.name,()=>openChannel(c),S.chat?.type==='channel'&&S.chat.id===c.id))}
+ const dm=el('dmNav');dm.replaceChildren();
+ for(const d of S.dms){
+  const id=d.otherId,b=text('button','','navItem'+(S.chat?.type==='dm'&&S.chat.id===d.id?' active':''));
+  b.title=pName(id);b.type='button';const a=makeAvatar(pName(id));const title=text('span','','navTitle');
+  title.textContent=pName(id);
+  b.append(a,title);if(online(id))b.append(text('span','●','onlineDot'));
+  b.onclick=()=>openDm(id,d.id);dm.append(b)
+ }
+ const cn=el('channelNav');cn.replaceChildren();
+ el('serverNavTitle').textContent=S.server?S.server.name.toUpperCase():'DEINE KANÄLE';
+ for(const c of S.channels.filter(c=>c.server_id===S.server?.id)){
+   const b=navButton('',()=>openChannel(c),S.chat?.type==='channel'&&S.chat.id===c.id);
+   b.append(ico('hash'),text('span',c.name,'navTitle'));cn.append(b)
+ }
 }
-function renderRail(){const rail=el('serversRail');rail.replaceChildren();const home=text('button','✦','railButton'+(!S.server?' active':''));home.title='Direktnachrichten';home.onclick=showFriends;rail.append(home,text('div','','railDivider'));for(const srv of S.servers){const b=text('button',srv.name.slice(0,2).toUpperCase(),'railButton'+(S.server?.id===srv.id?' active':''));b.title=srv.name;b.onclick=()=>selectServer(srv);rail.append(b)}const add=text('button','＋','railButton');add.title='Server erstellen';add.onclick=createServer;rail.append(add);const join=text('button','↪','railButton');join.title='Mit Einladung beitreten';join.onclick=joinServer;rail.append(join)}
+function renderRail(){
+ const rail=el('serversRail');rail.replaceChildren();
+ const home=text('button','✦','railButton'+(!S.server?' active':''));
+ home.title='Vynora Home';home.setAttribute('aria-label','Vynora Home');home.onclick=showFriends;
+ rail.append(home,text('div','','railDivider'));
+ for(const srv of S.servers){const b=text('button',srv.name.slice(0,2).toUpperCase(),'railButton'+(S.server?.id===srv.id?' active':''));
+ b.title=srv.name;b.setAttribute('aria-label','Server '+srv.name);b.onclick=()=>selectServer(srv);rail.append(b)}
+ const add=text('button','＋','railButton is-add');add.title='Server erstellen';add.setAttribute('aria-label','Server erstellen');add.onclick=createServer;rail.append(add);
+ const join=text('button','↪','railButton is-add');join.title='Server beitreten';join.setAttribute('aria-label','Server beitreten');join.onclick=joinServer;rail.append(join)
+}
+async function renderRight(){
+ const box=el('rightText'),title=el('rightHeading');box.replaceChildren();box.className='';
+ if(S.view==='friends'){
+  title.textContent='Jetzt aktiv';box.className='activeCard';
+  const live=S.friends.filter(online);
+  if(!live.length){box.append(text('strong','Gerade ist es ruhig ...'),text('p','Wenn Freunde online kommen, erscheinen sie hier.'));return}
+  box.append(text('strong',live.length+' online'));
+  for(const id of live){const b=text('button','','memberRow');b.style.width='100%';b.append(makeAvatar(pName(id)),text('span',pName(id),'label'));b.onclick=()=>openDm(id);box.append(b)}
+  return
+ }
+ if(S.view==='chat'&&S.chat?.type==='dm'){
+  title.textContent='Profil';const id=S.chat.otherId;
+  const banner=text('div','','profileHeader'),big=text('span',pName(id).slice(0,1).toUpperCase(),'largeAvatar');banner.append(big);
+  const panel=text('div','','profileCard');
+  panel.append(text('div',pName(id),'name'),text('div','@'+pUser(id),'handle'));
+  const info=text('div','','info');info.append(text('strong','STATUS'),text('span',online(id)?'🟢 Online':'Offline'));
+  panel.append(info);box.append(banner,panel);return
+ }
+ if(S.view==='chat'&&S.server){
+  title.textContent='Mitglieder';box.className='';
+  const selectedServer=S.server.id;
+  try{
+   const {data,error}=await client.from('server_members').select('user_id').eq('server_id',selectedServer).limit(200);
+   if(error)throw error;if(S.server?.id!==selectedServer)return;
+   await readProfiles((data||[]).map(x=>x.user_id));
+   box.append(text('div','MITGLIEDER — '+(data||[]).length,'listHead'));
+   for(const m of data||[]){const row=text('button','','memberRow');row.style.width='100%';row.append(makeAvatar(pName(m.user_id)),text('span',pName(m.user_id),'label'));row.onclick=()=>showUserProfile(m.user_id);box.append(row)}
+  }catch(e){box.append(text('p','Mitglieder momentan nicht verfügbar.','muted'))}
+  return
+ }
+ title.textContent='Vynora';box.className='activeCard';box.append(text('strong','Dein Messenger'),text('p','Freunde hinzufügen, chatten und Communities erstellen.'))
+}
+function showUserProfile(id){
+ if(!id)return;const p=S.profiles.get(id);
+ const status=online(id)?'🟢 Online':'⚪ Offline';
+ openDialog(p?.display_name||'Profil','@'+(p?.username||short(id))+' · '+status, {submitLabel:'Schließen',choices:['Schließen']}).catch(explain)
+}
+function applySearch(){
+ const q=el('topSearch').value.trim().toLocaleLowerCase();
+ if(S.view==='friends'){el('friendFilter').value=q;renderFriends();return}
+ if(S.view==='chat'){document.querySelectorAll('#messages .msg').forEach(n=>n.classList.toggle('hidden',q&&!n.textContent.toLocaleLowerCase().includes(q)))}
+}
 async function loadDms(){
   const {data,error}=await client.from('conversation_members').select('conversation_id').eq('user_id',S.user.id).limit(100);if(error)throw error;
   S.dms=[];for(const m of data||[]){const {data:users,error:e}=await client.from('conversation_members').select('user_id').eq('conversation_id',m.conversation_id);if(e)throw e;const other=users?.find(x=>x.user_id!==S.user.id);if(other)S.dms.push({id:m.conversation_id,otherId:other.user_id})}
