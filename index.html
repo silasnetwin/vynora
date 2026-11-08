@@ -329,14 +329,93 @@ async function openDm(id,existing){
 }
 async function openChannel(c){S.chat={type:'channel',id:c.id,name:c.name};view('chat');setTitle('# '+c.name);renderSidebar();await listenToChat()}
 async function leaveChat(){if(S.subscription){await client.removeChannel(S.subscription);S.subscription=null}if(S.poll){clearInterval(S.poll);S.poll=null}}
-async function listenToChat(){await leaveChat();if(!S.chat)return;const {type,id}=S.chat;await loadMessages();const table=type==='dm'?'messages':'channel_messages';const column=type==='dm'?'conversation_id':'channel_id';S.subscription=client.channel('vynora-'+type+'-'+id).on('postgres_changes',{event:'INSERT',schema:'public',table,filter:column+'=eq.'+id},()=>loadMessages()).subscribe();S.poll=setInterval(()=>{if(!document.hidden&&S.chat?.id===id)loadMessages()},12000)}
-async function loadMessages(){const ch=S.chat;if(!ch)return;const type=ch.type;const table=type==='dm'?'messages':'channel_messages';const field=type==='dm'?'conversation_id':'channel_id';try{
- const {data,error}=await client.from(table).select('id,sender_id,body,created_at').eq(field,ch.id).order('created_at',{ascending:true}).limit(150);if(error)throw error;if(S.chat?.id!==ch.id)return;
- await readProfiles((data||[]).map(m=>m.sender_id));const area=el('messages');area.replaceChildren();
- if(!(data||[]).length)area.append(text('p','Hier beginnt die Unterhaltung. Schreib die erste Nachricht!','empty'));
- for(const m of data||[]){const r=text('div','','msg'),body=text('div','','msgMain'),title=text('div',''),who=text('span',m.sender_id===S.user.id?'Du':pName(m.sender_id),'msgName'),date=text('span',new Date(m.created_at).toLocaleString('de-DE'),'msgDate');title.append(who,date);body.append(title,text('div',m.body,'msgBody'));r.append(makeAvatar(pName(m.sender_id)),body);area.append(r)}
- area.scrollTop=area.scrollHeight
- }catch(e){explain(e)}}
+async function listenToChat(){await leaveChat();if(!S.chat)return;const {type,id}=S.chat;await loadMessages();const table=type==='dm'?'messages':'channel_messages';const column=type==='dm'?'conversation_id':'channel_id';const reactTable=type==='dm'?'dm_reactions':'channel_reactions';S.subscription=client.channel('vynora-'+type+'-'+id).on('postgres_changes',{event:'*',schema:'public',table,filter:column+'=eq.'+id},()=>loadMessages()).on('postgres_changes',{event:'*',schema:'public',table:reactTable},()=>loadMessages()).subscribe();S.poll=setInterval(()=>{if(!document.hidden&&S.chat?.id===id)loadMessages()},12000)}
+async function loadReactions(chat,ids){
+ const result=new Map();if(!ids.length)return result;
+ const table=chat.type==='dm'?'dm_reactions':'channel_reactions';
+ const {data,error}=await client.from(table).select('id,message_id,user_id,emoji').in('message_id',ids);
+ if(error){console.warn('Reactions:',error.message);return result}
+ for(const r of data||[]){if(!result.has(r.message_id))result.set(r.message_id,new Map());
+   const emojis=result.get(r.message_id);if(!emojis.has(r.emoji))emojis.set(r.emoji,{count:0,mine:null});
+   const item=emojis.get(r.emoji);item.count++;if(r.user_id===S.user.id)item.mine=r.id}
+ return result
+}
+async function reactTo(message,emoji,existing){
+ if(!S.chat||!message)return;
+ const table=S.chat.type==='dm'?'dm_reactions':'channel_reactions';
+ try{
+  const response=existing
+    ?await client.from(table).delete().eq('id',existing).eq('user_id',S.user.id)
+    :await client.from(table).insert({message_id:message.id,user_id:S.user.id,emoji});
+  if(response.error)throw response.error;await loadMessages()
+ }catch(e){explain(e)}
+}
+async function chooseReaction(message){
+ const choice=await openDialog('Mit Emoji reagieren','Wähle eine Reaktion:',{choices:['👍','❤️','😂','🔥','🎉','👏','💜','✅','😍','😮','😢','🚀']});
+ if(choice){const chat=S.chat;if(!chat)return;const entries=await loadReactions(chat,[message.id]);await reactTo(message,choice,entries.get(message.id)?.get(choice)?.mine)}
+}
+async function editMessage(m){
+ if(m.sender_id!==S.user?.id)return;
+ const body=await openDialog('Nachricht bearbeiten','Passe deine Nachricht an:',{defaultValue:m.body,placeholder:'Nachricht bearbeiten',submitLabel:'Speichern',maxLength:2000});
+ if(!body||body===m.body||!S.chat)return;
+ const table=S.chat.type==='dm'?'messages':'channel_messages';
+ const {error}=await client.from(table).update({body}).eq('id',m.id).eq('sender_id',S.user.id);
+ if(error)explain(error);else await loadMessages()
+}
+async function deleteMessage(m){
+ if(m.sender_id!==S.user?.id)return;
+ const yes=await openDialog('Nachricht löschen?','Diese Nachricht wird dauerhaft gelöscht.',{choices:['Löschen','Abbrechen']});
+ if(yes!=='Löschen'||!S.chat)return;
+ const table=S.chat.type==='dm'?'messages':'channel_messages';
+ const {error}=await client.from(table).delete().eq('id',m.id).eq('sender_id',S.user.id);
+ if(error)explain(error);else await loadMessages()
+}
+async function loadMessages(){
+ const ch=S.chat;if(!ch)return;
+ const table=ch.type==='dm'?'messages':'channel_messages';
+ const field=ch.type==='dm'?'conversation_id':'channel_id';
+ try{
+  const {data,error}=await client.from(table).select('id,sender_id,body,created_at,edited_at')
+    .eq(field,ch.id).order('created_at',{ascending:true}).limit(150);
+  if(error)throw error;if(S.chat?.id!==ch.id)return;
+  await readProfiles((data||[]).map(m=>m.sender_id));
+  const reactions=await loadReactions(ch,(data||[]).map(m=>m.id));
+  if(S.chat?.id!==ch.id)return;
+  const area=el('messages');const pinned=area.scrollHeight-area.scrollTop-area.clientHeight<180;
+  area.replaceChildren();
+  if(!(data||[]).length){
+   const empty=text('div','','emptyState');
+   empty.append(text('div','✦','symbol'),text('h3',ch.type==='dm'?'Beginn eurer Unterhaltung':'Willkommen in #'+ch.name),
+      text('p',ch.type==='dm'?'Schreib eine Nachricht, um das Gespräch zu beginnen.':'Hier beginnt die Unterhaltung dieses Textkanals.'));
+   area.append(empty)
+  }
+  for(const m of data||[]){
+   const r=text('article','','msg'),content=text('div','','msgMain'),title=text('div',''),
+    who=text('span',m.sender_id===S.user.id?'Du':pName(m.sender_id),'msgName'),
+    date=text('span',new Date(m.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+(m.edited_at?' · bearbeitet':''),'msgDate');
+   title.append(who,date);content.append(title,text('div',m.body,'msgBody'));
+   const actions=text('div','','msgActions');
+   actions.append(iconButton('smile','Reaktion hinzufügen',()=>chooseReaction(m),''));
+   if(m.sender_id===S.user.id){
+     actions.append(iconButton('edit','Bearbeiten',()=>editMessage(m),''));
+     actions.append(iconButton('trash','Löschen',()=>deleteMessage(m),''))
+   }
+   const emojiRows=reactions.get(m.id);
+   if(emojiRows?.size){
+     const pills=text('div','','reactions');
+     for(const [emoji,rec] of emojiRows){
+       const pill=text('button',emoji+' '+rec.count,'reaction'+(rec.mine?' owned':''));
+       pill.title=rec.mine?'Eigene Reaktion entfernen':'Reagieren';pill.onclick=()=>reactTo(m,emoji,rec.mine);
+       pills.append(pill)
+     }
+     content.append(pills)
+   }
+   r.append(makeAvatar(pName(m.sender_id)),content,actions);area.append(r)
+  }
+  if(pinned)area.scrollTop=area.scrollHeight;
+  applySearch()
+ }catch(e){explain(e)}
+}
 async function send(e){e.preventDefault();if(!S.chat)return;const body=el('composerInput').value.trim();if(!body)return;el('sendButton').disabled=true;try{const table=S.chat.type==='dm'?'messages':'channel_messages',key=S.chat.type==='dm'?'conversation_id':'channel_id';const {error}=await client.from(table).insert({[key]:S.chat.id,sender_id:S.user.id,body});if(error)throw error;el('composerInput').value='';await loadMessages()}catch(e){explain(e)}finally{el('sendButton').disabled=false}}
 async function start(){await Promise.all([loadProfile(),loadFriends(),loadDms(),loadServers()]);showFriends()}
 async function session(user){if(S.user?.id===user?.id)return;await leaveChat();S.user=user;toggle('authView',!user);toggle('app',!!user);if(!user){S.profile=null;S.profiles=new Map();S.friends=[];S.dms=[];S.servers=[];return}try{await start()}catch(e){explain(e)}}
