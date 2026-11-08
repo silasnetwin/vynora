@@ -1,0 +1,30 @@
+name: Validate Vynora frontend
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check static HTML and JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          for path in ('index.html','cloud.html'):
+              html=Path(path).read_text(encoding='utf-8')
+              scripts=re.findall(r'<script type="module">([\s\S]*?)</script>',html)
+              assert len(scripts)==1, f'{path} must have exactly one inline module'
+              src=scripts[0]
+              assert 'createClient' in src and 'friend_requests' in src
+              Path(path+'.mjs').write_text(src,encoding='utf-8')
+          assert Path('index.html').read_text()==Path('cloud.html').read_text(), 'index and cloud must stay in sync'
+          assert 'sb_secret_' not in Path('supabase-config.js').read_text()
+          assert 'service_role' not in Path('supabase-config.js').read_text()
+          PY
+          node --check index.html.mjs
+          node --check cloud.html.mjs
