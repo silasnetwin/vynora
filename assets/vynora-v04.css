@@ -1,0 +1,128 @@
+/* Vynora UI v0.4 — independently authored Discord-like spatial design.
+   No Discord artwork, logos, font binaries or proprietary UI code used. */
+:root {
+ --rail:#101115; --sidebar:#121317; --main:#1c1d23; --panel:#22232b;
+ --raised:#2b2d36; --hover:#31323c; --border:#2b2c35;
+ --fg:#f2f3f6; --muted:#9497a5; --brand:#5965f2;
+ --positive:#3ba979; --danger:#ed626b;
+ font-family:Inter,"Segoe UI",system-ui,Arial,sans-serif;font-size:14px;
+}
+body{background:var(--main)}button{transition:background-color .12s ease,color .12s ease,filter .12s ease}
+button:hover:not(:disabled){filter:none}
+#app{background:var(--main);font-size:14px}
+.rail{background:var(--rail);width:72px;flex-basis:72px;gap:9px;padding:12px 10px}
+.railButton{width:48px;height:48px;min-height:48px;border-radius:18px;box-shadow:none;background:#292a33;color:#e1e3ee;font-size:16px}
+.railButton:hover,.railButton.active{background:var(--brand);border-radius:15px;color:white}
+.railButton.active:before{left:-13px;height:38px}
+.railButton.is-add{color:#39bb85;background:#26282d}
+.railButton.is-add:hover{background:#3aa67e;color:#fff}
+.side{width:284px;flex-basis:284px;border-radius:10px 0 0 0;background:var(--sidebar)}
+.sideTop{height:53px;flex-basis:53px;border-bottom:1px solid #202127;padding:9px 9px}
+.searchTop{height:35px;background:#25262e;padding:8px 11px;justify-content:space-between;border-radius:7px;text-align:left;font-size:12px;font-weight:550;color:#c9cbd7}
+.searchTop:hover{background:#30323c}
+.searchTop .key{background:#14151b;border:1px solid #40414b;border-radius:4px;color:#888c9a;white-space:nowrap}
+.sideScroll{padding:11px 9px;scrollbar-width:thin}
+.sideScroll .navItem{height:40px;padding:8px 10px;gap:12px}
+.sideScroll #navFriends{height:43px;margin-bottom:2px}
+.sideScroll #navRequests{height:43px}
+.sideScroll .navItem svg{width:20px;height:20px}
+.sectionLabel{font-size:10.5px;letter-spacing:.025em;font-weight:720;color:#999ca8;margin-top:13px;padding:12px 9px 8px}
+.sectionLabel button{width:24px;height:23px;display:inline-grid;place-items:center;font-size:18px;line-height:1}
+#dmNav .navItem{height:45px;padding:5px 8px}
+#dmNav .avatar{width:32px;min-width:32px;height:32px;font-size:12px}
+#channelNav .navItem{height:36px}
+#channelNav .navItem svg{width:20px;height:20px}
+.navItem{border-radius:6px;color:#a7a9b6}
+.navItem:hover{background:#292b33!important;color:#e9eaf1}
+.navItem.active{background:#30313b!important;color:white}
+.navItem.active svg{stroke:#e5e7f4}
+.account{height:62px;flex-shrink:0;background:#202127;padding:7px 9px;border-top:1px solid #272831}
+.accountInfo b{font-size:13px;line-height:16px}.accountInfo small{font-size:10.5px;line-height:15px}
+.account button{width:29px;height:29px;border-radius:6px}
+.account .avatar{width:35px;min-width:35px;height:35px}
+.work,.body,.content{background:var(--main)}
+.top{height:53px;min-height:53px;background:#1b1c22;padding:0 20px;gap:13px;box-shadow:0 1px 0 #08090c45}
+.top strong{font-size:14px;max-width:260px;font-weight:760;display:flex;align-items:center;gap:8px}
+.top .sep{height:22px;background:#3a3b44}
+#tabs{gap:12px}
+#tabs .tab{font-size:13px;padding:6px 12px;color:#aeb1c0;font-weight:540}
+#tabs .tab.active{color:#f4f4f6;background:#33343d}
+#tabs .primary{border-radius:6px;background:var(--brand);font-size:13px;font-weight:700}
+.topTools{gap:7px}
+.topTools button{width:30px;height:30px}
+.topTools button svg{width:20px;height:20px}
+.topTools .quickFind{background:#14151a;border:1px solid #353740;max-width:175px;width:175px;font-size:12px}
+.content{min-width:0}
+.right{width:305px;flex-basis:305px;background:var(--main);border-left:1px solid #2c2d35;padding:20px 15px}
+.right h3{font-size:16px;font-weight:750;color:#f1f2f5;margin-bottom:15px}
+.activeCard{background:#24252d;border-radius:8px;padding:18px 16px;color:#aeb0bd;font-size:12px;line-height:1.5}
+.activeCard strong{font-size:13px}
+.friendSearchWrap .searchMag{top:11px}
+.friendsArea{padding:16px 24px}
+.friendsArea .filter{height:40px;background:#131419;border:1px solid #383a43;border-radius:8px}
+.friendsArea .filter:focus{outline:1px solid #5965f2;outline-offset:0}
+.listHead{font-size:11px;font-weight:720;letter-spacing:.005em;margin:22px 0 12px;color:#aeb0bc}
+.friendRow{min-height:64px;gap:12px;border-top:1px solid #292b32;padding:10px 6px}
+.friendRow:hover{background:#25262e;padding-left:10px;padding-right:10px}
+.friendRow b{font-size:13px}
+.friendRow small{font-size:11.5px;color:#9fa2b0}
+.friendRow .pill{width:34px;height:34px}
+.memberRow{width:100%;display:flex;align-items:center;gap:11px;padding:7px 7px;color:#b9bac4;border-radius:6px}
+.memberRow:hover{background:#292b33;color:#f3f3f6}
+.memberRow .label{font-size:13px}
+.memberRow .avatar{width:33px;height:33px;min-width:33px}
+.msgs{padding:22px 22px 8px;background:var(--main)}
+.msg{margin:0 -8px 4px;padding:5px 8px;gap:14px;border-radius:5px}
+.msg:hover{background:#22242b}
+.msg .avatar{width:40px;min-width:40px;height:40px}
+.msgMain{padding:0 2px}
+.msgName{font-size:14px;font-weight:700;cursor:default}
+.msgDate{font-size:10px;color:#898b9a}
+.msgBody{margin-top:5px;color:#e0e1e7;line-height:1.45}
+.msgActions{background:#23242d;border-color:#383a46;top:-15px;right:14px}
+.composer{margin:10px 17px 18px;background:#383941;border:1px solid transparent;padding:9px 11px;border-radius:8px}
+.composer:focus-within{border-color:#666a91}
+.composer input{height:37px;color:#f4f4f6}
+.composer .primary{border-radius:5px}
+.composeTool{width:30px;height:32px}
+#requestsView .friendsArea h2,#settingsView .friendsArea h2{font-size:20px}
+.emptyState{min-height:270px;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.emptyState .symbol{font-size:40px;color:#8991ef}
+.emptyState h3{font-size:17px;margin:8px 0}
+.emptyState p{font-size:13px;color:#9da0ae}
+.profileHeader{background:linear-gradient(120deg,#30354d,#252838);height:116px}
+.profileCard{background:#25262e}
+.profileCard .name{font-size:17px}
+#profileForm{background:#24252d;border:1px solid #30323a;padding:24px}
+.modalBackdrop{backdrop-filter:blur(3px)}
+.modal{background:#2b2c35;border:1px solid #3a3c48;border-radius:12px;box-shadow:0 20px 85px #000b}
+.modalFooter .primary{min-width:112px}
+.toast{max-width:420px}
+/* True server navigation, unlike the old demo which mixed friends into servers. */
+#app:not(.serverMode) #channelHeading,
+#app:not(.serverMode) #channelNav{display:none}
+#app.serverMode #navFriends,
+#app.serverMode #navRequests,
+#app.serverMode #dmHeading,
+#app.serverMode #dmNav{display:none}
+#app.serverMode .sideTop{padding:0;border-bottom:1px solid #2c2e37}
+#app.serverMode .searchTop{height:53px;padding:0 17px;border-radius:0;background:transparent;font-weight:770;color:#f4f5f8;font-size:14px}
+#app.serverMode .searchTop:hover{background:#25262e}
+#app.serverMode .searchTop .key{display:none}
+#app.serverMode #channelHeading{margin-top:6px}
+#app.serverMode #channelNav .navItem{height:37px;font-size:14px}
+#app.serverMode .railButton.active{border-radius:14px}
+#app.serverMode .account{background:#202127}
+/* Buttons for real server and channel management. */
+#serverTools{display:flex;gap:4px;align-items:center}
+#serverTools button{padding:3px 5px;border-radius:4px;color:#9295a4}
+#serverTools button:hover{background:#373843;color:#fff}
+.serverHint{color:#9195a4;font-size:11px;padding:7px 9px 12px;line-height:1.4}
+.headerIcon{display:inline-grid;place-items:center;color:#aaaeba}
+.headerIcon svg{width:19px;height:19px}
+#rightText .memberRow{padding:8px 6px}
+/* Small screens: keep navigation useful rather than squashing every column. */
+@media(max-width:1100px){.side{width:260px;flex-basis:260px}.right{width:265px;flex-basis:265px}.topTools .quickFind{width:125px}}
+@media(max-width:950px){.right{display:none}.side{width:244px;flex-basis:244px}}
+@media(max-width:700px){.rail{width:53px;flex-basis:53px;padding:10px 3px}.railButton{width:41px;height:41px;min-height:41px}.side{width:175px;flex-basis:175px}.sideTop{height:49px;flex-basis:49px}.top{padding:0 8px;gap:5px}.top strong{max-width:112px;font-size:12px}.top .sep{display:none}#tabs{gap:1px}#tabs .tab{padding:6px 5px;font-size:11px}#tabs .primary{padding:5px 7px!important;font-size:10px}.topTools .quickFind{display:none}.topTools button{width:25px}.friendsArea{padding:10px}.right{display:none}.account button{width:25px}.accountInfo{max-width:60px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
