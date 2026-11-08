@@ -1,46 +1,61 @@
-# ✦ Vynora — Messenger (Preview)
+# ✦ Vynora — Discord-inspirierter Web-Messenger
 
-Vynora ist ein eigenständiger, Discord-inspirierter Browser-Messenger mit eigenem Namen, eigener Oberfläche und Supabase/PostgreSQL als Backend.
+**Status:** Funktionsfähige Entwickler-Vorschau, noch nicht produktionsreif und keine offizielle Discord-App.
 
-## Starten
+## Öffnen
 
-**[Vynora im Browser](https://silasnetwin.github.io/vynora/)** (vorausgesetzt GitHub Pages ist für den Branch `main` aktiv).
+- **Web-App:** https://silasnetwin.github.io/vynora/
+- **Alte Offline-Demo:** https://silasnetwin.github.io/vynora/demo.html
+- **GitHub-Code:** https://github.com/silasnetwin/vynora
 
-Die erste, rein lokale Test-Demo steht weiterhin unter [demo.html](https://silasnetwin.github.io/vynora/demo.html).
+## Funktionen (November 2026)
 
-## Eingebaute Funktionen
+- 3-Spalten-Layout: Serverleiste, DM-/Kanalnavigation, Nachrichten und Profil-/Mitgliederbereich
+- Supabase Auth: Registrierung, Login, Bestätigungsmail erneut anfordern und Passwort-Recovery
+- Profile mit Namen, Benutzernamen und Online-/Abwesend-/Nicht-stören-/Unsichtbar-Status
+- Freunde: Suche, Anfragen senden, annehmen, ablehnen, zurückziehen, blockieren/entblockieren
+- DMs und Server-Textkanäle: Nachrichten schreiben, bearbeiten und löschen
+- Reaktionen: Emojis setzen/entfernen mit gespeicherten Zählerständen
+- Server erstellen, Textkanäle erstellen, Einladungscode teilen und über Code beitreten
+- Suche in derzeit geladenen Nachrichten, responsives Layout und Tastaturkürzel Strg+K
+- Ungefährer Online-Status (Heartbeat statt lückenloser Realtime-Präsenz)
+- Realtime-Events mit Polling-Fallback
 
-- Supabase Auth: E-Mail/Passwort Registrierung und Anmeldung
-- Profile: Anzeigename und eindeutige Benutzernamen
-- Freunde suchen, Freundschaftsanfragen senden, annehmen und ablehnen
-- Privatnachrichten mit PostgreSQL und Realtime-Updates (zusätzlicher Polling-Fallback)
-- Kontakte blockieren, Server und Textkanäle erstellen
-- Einladungscodes teilen, Communities beitreten und Kanalnachrichten schreiben
-- Responsive Dark-Mode-App mit Servernavigation, Freunden, DMs und Profilansicht
-- Row Level Security für alle 10 Anwendungstabellen
+## Technik
 
-## Architektur
+- **Frontend:** Eigenständiges HTML/CSS/JS in `index.html` und `cloud.html`, Styles in `assets/vynora-discordlike.css`
+- **Deployment:** GitHub Pages für statische Dateien
+- **Backend:** Supabase Auth, PostgreSQL, PostgREST, Realtime
+- **Sicherheit:** 12 Anwendungstabellen mit RLS, eingeschränkte SQL-Tabellen- und Spaltenrechte, abgesicherte Server-/DM-RPCs
+- **Migrationen:** 7 auf dem verbundenen Supabase-Projekt ausgeführte SQL-Migrationen in `supabase/migrations/`
+- **Keys:** `supabase-config.js` enthält ausschließlich einen öffentlichen Publishable Key, niemals einen Service-Role-/Secret-Key
+- Die ältere Rust-/SQLite-App ist ein getrenntes Desktop-Projekt; diese Webversion verwendet Supabase
 
-- **Frontend:** Statisches HTML/CSS/JavaScript in `index.html` (auch in `cloud.html`).
-- **Hosting:** GitHub Pages; später mögliche eigene Domain `app.vynora.me`.
-- **Backend:** Supabase Auth, PostgreSQL (10 Anwendungstabellen), Row Level Security, Postgres Changes Realtime.
-- **Browser-Konfiguration:** `supabase-config.js` enthält ausschließlich die öffentliche Project URL und den Publishable Key, **keine Secrets**.
-- **SQL-Migrationen:** `supabase/migrations/` enthält die drei auf dem Projekt `vynora` ausgeführten SQL-Migrationen.
-- **Altes Prototyp-Projekt:** Rust + SQLite ist ein separater Desktop-Ansatz; der Web-Client verwendet derzeit kein Rust.
+## Wichtig: Auth-Weiterleitung korrigieren
 
-## Testen
+Falls die Mail-Bestätigung nach `http://localhost:3000` weiterleitet, muss in **Supabase Dashboard → Authentication → URL Configuration** der Site URL geändert werden:
 
-1. Öffne die Vynora-Seite, registriere dich mit einer E-Mail-Adresse und bestätige sie, falls Supabase das verlangt.
-2. Ändere unter ⚙ Einstellungen den automatisch angelegten Benutzernamen in einen kurzen Namen.
-3. Registriere einen zweiten Testaccount in einem anderen Browser oder Privatfenster.
-4. Suche den zweiten Nutzernamen über **Freund hinzufügen**, sende eine Anfrage und nimm sie im zweiten Konto an.
-5. Starte einen DM, sende Nachrichten und überprüfe die Synchronisierung.
-6. Erstelle einen Server (＋), kopiere seinen Einladungscode (⤴) und tritt mit einem anderen Konto über ↪ bei.
+`https://silasnetwin.github.io/vynora/`
 
-**Wichtig:** Wenn die Bestätigungs-E-Mail zurück zur falschen URL leitet, muss in Supabase unter Authentication → URL Configuration die richtige GitHub Pages URL als Redirect erlaubt sein, z. B. `https://silasnetwin.github.io/vynora/**`.
+Und als Redirect URL muss die Vynora-Seite erlaubt sein:
 
-## Was noch fehlt
+`https://silasnetwin.github.io/vynora/**`
 
-Dies ist noch **keine fertige Discord-Alternative**. Es fehlen unter anderem Sprach- und Videochat, Uploads, Rollen und Berechtigungen, Push-Benachrichtigungen, vollständige Moderation, Suche, Barrierefreiheit-Tests, Rate Limits und umfangreiche Last-/Sicherheitstests. Nachrichten sind noch nicht Ende-zu-Ende-verschlüsselt; verwende die Vorschau nicht für vertrauliche Unterhaltungen.
+Das Projekt lässt sich später zusätzlich auf `app.vynora.me` umstellen. Änderungen an Supabase Auth URL Configuration müssen im Dashboard vorgenommen werden; die Repository-Dateien allein ändern diese Einstellung nicht.
 
-Das Projekt ist unabhängig und nicht mit Discord verbunden. Für einen öffentlichen Launch sind zusätzliche Schutzfunktionen nötig.
+## Realer Funktionstest
+
+1. Konto A anmelden; Profilname wählen.
+2. Mit zweitem Browser/Privatfenster Konto B erstellen und E-Mail bestätigen.
+3. Account A sucht den Benutzernamen von B, sendet Anfrage; B akzeptiert.
+4. DM erstellen, Nachrichten in beiden Fenstern senden, ändern, löschen und mit Emoji reagieren.
+5. Server anlegen, Einladungscode teilen, mit B beitreten, Nachrichten in Kanälen austauschen.
+6. Blockierung, Nachrichtenrechte und Sichtbarkeit mit separaten Testkonten überprüfen.
+
+### Noch nicht enthalten
+
+Sprach- und Videoanrufe, Medien-Uploads, Rollen-/Rechtesystem wie Discord, Threads, Erwähnungen, Bildschirmfreigabe, Push-Benachrichtigungen und vollständige öffentliche Moderation. Keine Ende-zu-Ende-Verschlüsselung. Ein vollständiger manueller Zwei-Account-Browser-Endtest ist noch offen.
+
+**Sicherheit:** Supabase meldet Warnungen für einige bewusst an angemeldete Nutzer freigegebene `SECURITY DEFINER`-RPCs sowie für die optionale Erkennung kompromittierter Passwörter. Die Anwendung benötigt vor öffentlichem Launch weitere Sicherheits- und Missbrauchstests sowie Rate-Limits.
+
+Unabhängiges Projekt; verwendet eigene Marke und keine proprietären Discord-Grafiken.
