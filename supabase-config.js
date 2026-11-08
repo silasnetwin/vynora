@@ -1,4 +1,4 @@
-// Copy public configuration values from Supabase → Project Settings → API Keys.
-// Only use the PUBLISHABLE key (or legacy anon key). NEVER put a secret/service_role key here.
-export const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
-export const SUPABASE_PUBLISHABLE_KEY = 'YOUR_PUBLISHABLE_KEY';
+// Vynora browser configuration: only the low-privilege PUBLIC publishable API key.
+// Permissions are enforced by Supabase Auth and PostgreSQL Row Level Security.
+export const SUPABASE_URL = 'https://nassqnkmuzuuuylelreh.supabase.co';
+export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_lsY_p9vA60PUQ3mGiL1KZQ_dqiYPpGM';
