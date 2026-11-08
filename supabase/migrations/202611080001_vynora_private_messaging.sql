@@ -5,7 +5,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
-  username text not null unique check (char_length(username) between 3 and 48 and username ~ '^[a-z0-9_.]+
+  username text not null unique check (char_length(username) between 3 and 48 and username ~ '^[a-z0-9_.]+$'),
   display_name text not null default 'Vynora User' check (char_length(display_name) between 1 and 40),
   created_at timestamptz not null default now()
 );
